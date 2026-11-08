@@ -1,2 +1,6 @@
 /.venv/
 /.venvLinux/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.codex/
