@@ -8,10 +8,10 @@ import unittest
 from typing import Any, Dict, Optional
 import networkx as nx
 
-from app import GameManager, create_app
-from automata.dfa_engine import DFAEngine, TransitionResult
-from game.game_state import GameState
-from game.grid_config import LevelConfig
+from robot_navigation.app import GameManager, create_app
+from robot_navigation.automata.dfa_engine import DFAEngine, TransitionResult
+from robot_navigation.game.game_state import GameState
+from robot_navigation.game.grid_config import LevelConfig
 
 
 # ==============================================================================

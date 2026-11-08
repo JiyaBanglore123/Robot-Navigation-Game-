@@ -53,8 +53,9 @@ The system uses a modular 3-tier architecture with clear separation of concerns:
 ```text
 Robot-Navigation-Game/
 │
-├── app.py                      # Flask backend, GameManager, and REST routes
+├── app.py                      # Root convenience runner
 ├── requirements.txt            # Project dependencies (Flask, NetworkX, Matplotlib, pytest)
+├── pytest.ini                  # Pytest configuration
 ├── run.sh                      # One-click execution script for Linux / Ubuntu
 ├── run.bat                     # One-click execution script for Windows
 ├── README.md                   # Project documentation
@@ -63,40 +64,36 @@ Robot-Navigation-Game/
 ├── assets/
 │   └── robot_navigation_dfa.jff# JFLAP DFA specification XML (Jiya)
 │
-├── automata/
-│   ├── __init__.py
-│   ├── jff_parser.py           # Re-exports and adapts JFLAP parser
-│   └── dfa_engine.py           # Jiya's module (boilerplate & interface)
-│
-├── game/
-│   ├── __init__.py
-│   ├── grid_config.py          # Pavithra's module (LevelConfig & LEVELS)
-│   └── game_state.py           # Pavithra's module (GameState manager)
-│
-├── config/
-│   ├── __init__.py
-│   └── settings.py             # Configurable mappings, paths, host/port
-│
-├── frontend/
-│   ├── templates/
-│   │   └── index.html          # Retro terminal single-page interface
-│   └── static/
-│       ├── css/
-│       │   └── style.css       # Retro UI styling, animations, responsiveness
-│       ├── js/
-│       │   └── game.js         # Centralized API layer, Web Audio synthesizer
-│       └── assets/
-│
 ├── docs/
 │   └── robot_navigation_gui_design.md # GUI design guidelines
 │
 ├── src/
-│   └── misc/
-│       └── jff_parser.py       # Original NetworkX JFLAP parser
+│   └── robot_navigation/       # Primary application package
+│       ├── __init__.py
+│       ├── app.py              # Flask backend, GameManager, and REST routes
+│       ├── automata/
+│       │   ├── __init__.py
+│       │   ├── jff_parser.py   # Consolidated NetworkX JFLAP parser & metadata extractor
+│       │   └── dfa_engine.py   # DFA Engine (Jiya)
+│       ├── game/
+│       │   ├── __init__.py
+│       │   ├── grid_config.py  # Grid config & levels (Pavithra)
+│       │   └── game_state.py   # GameState manager (Pavithra)
+│       ├── config/
+│       │   ├── __init__.py
+│       │   └── settings.py     # Configuration, mappings, paths, host/port
+│       └── web/
+│           ├── templates/
+│           │   └── index.html  # Retro terminal single-page interface
+│           └── static/
+│               ├── css/
+│               │   └── style.css # Retro UI styling, animations, responsiveness
+│               └── js/
+│                   └── game.js   # Centralized API layer, Web Audio synthesizer
 │
 └── tests/
     ├── __init__.py
-    └── test_api.py             # Ankur's automated API test suite with mocks
+    └── test_api.py             # Automated API test suite with mocks
 ```
 
 ---

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 # Base project root directory
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 # Path to JFLAP DFA XML file
 JFF_PATH = os.environ.get(

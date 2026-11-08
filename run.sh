@@ -25,12 +25,12 @@ PYTHON_VERSION=$(python3 --version 2>&1)
 echo "[1/5] Detected Python: $PYTHON_VERSION"
 
 # 3. Check or create virtual environment
-VENV_DIR="$SCRIPT_DIR/.venvLinux"
+VENV_DIR="$SCRIPT_DIR/.venv"
 if [ ! -d "$VENV_DIR" ]; then
-    echo "[2/5] Creating Python virtual environment in .venvLinux..."
+    echo "[2/5] Creating Python virtual environment in .venv..."
     python3 -m venv "$VENV_DIR"
 else
-    echo "[2/5] Existing virtual environment found in .venvLinux."
+    echo "[2/5] Existing virtual environment found in .venv."
 fi
 
 # 4. Activate virtual environment

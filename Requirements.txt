@@ -1,7 +1,0 @@
-# DFA-Based Robot Navigation Game
-# University Project: Formal Language & Automata Theory (FLA)
-
-flask>=3.0.0
-networkx>=3.0
-matplotlib>=3.7.0
-pytest>=7.0.0
