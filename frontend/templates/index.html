@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DFA-9: Robot Navigation Game | Formal Languages & Automata</title>
+  
+  <!-- Retro & Monospace Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="terminal-theme">
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 1: BOOT SEQUENCE                                               -->
+  <!-- ===================================================================== -->
+  <section id="screen-boot" class="screen active">
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <span class="term-dot red"></span>
+        <span class="term-dot yellow"></span>
+        <span class="term-dot green"></span>
+        <span class="term-title">DFA-9 // BOOTLOADER v2.4</span>
+        <button id="btn-boot-skip" class="retro-btn-subtle" title="Skip Boot Sequence">SKIP [ESC]</button>
+      </div>
+      <div class="terminal-body" id="boot-terminal-body">
+        <div id="boot-lines" class="boot-text"></div>
+        <div id="boot-progress-container" class="boot-progress-container hidden">
+          <div class="boot-progress-label">SYSTEM INITIALIZATION:</div>
+          <div class="progress-bar-frame">
+            <div id="boot-progress-bar" class="progress-bar-fill"></div>
+          </div>
+          <div id="boot-progress-percent" class="boot-progress-percent">0%</div>
+        </div>
+        <div id="boot-robot-graphic" class="boot-robot-graphic hidden">
+          <pre class="ascii-robot">
+   [o_o]  &lt;&lt; DFA-9 ACTIVATED &gt;&gt;
+   /|_|\  "Beep boop! Ready for transitions."
+    / \   
+          </pre>
+        </div>
+        <div id="boot-prompt" class="boot-prompt hidden">
+          <span class="pulse-text">&gt;&gt; PRESS ANY KEY OR CLICK TO ENTER &lt;&lt;</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 2: TITLE SCREEN                                                -->
+  <!-- ===================================================================== -->
+  <section id="screen-title" class="screen hidden">
+    <div class="title-container">
+      <div class="title-badge">FLA UNIVERSITY PROJECT // PERSON 2 (ANKUR)</div>
+      <h1 class="main-title">
+        <span class="title-glow">ROBOT NAVIGATION</span>
+        <span class="title-sub">DFA AUTOMATA GAME</span>
+      </h1>
+      
+      <div class="dee-mascot-container">
+        <div class="dee-robot" id="title-robot">
+          <div class="dee-antenna"></div>
+          <div class="dee-head">
+            <div class="dee-eye left"></div>
+            <div class="dee-eye right"></div>
+            <div class="dee-mouth"></div>
+          </div>
+          <div class="dee-body">
+            <div class="dee-chest">DFA-9</div>
+          </div>
+          <div class="dee-tracks">
+            <div class="track"></div>
+            <div class="track"></div>
+          </div>
+        </div>
+        <div class="speech-bubble" id="title-speech">
+          "Hi! I'm Dee (DFA-9). Every key press is an input symbol, and every move is a state transition!"
+        </div>
+      </div>
+
+      <nav class="menu-nav">
+        <button id="btn-menu-play" class="retro-btn menu-btn active-hover">
+          <span class="btn-arrow">▶</span> PLAY GAME
+        </button>
+        <button id="btn-menu-how" class="retro-btn menu-btn">
+          <span class="btn-arrow">▶</span> HOW IT WORKS
+        </button>
+        <button id="btn-menu-dfa" class="retro-btn menu-btn">
+          <span class="btn-arrow">▶</span> DFA VIEWER
+        </button>
+      </nav>
+
+      <div class="title-footer">
+        <span>Formal Language & Automata Theory</span> · 
+        <span id="sound-status-label">SOUND: ON [M]</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 3: HOW IT WORKS                                                -->
+  <!-- ===================================================================== -->
+  <section id="screen-how" class="screen hidden">
+    <div class="content-modal">
+      <div class="modal-header">
+        <h2>HOW IT WORKS // AUTOMATA CONCEPTS</h2>
+        <button id="btn-how-close" class="retro-btn-close">✖</button>
+      </div>
+      
+      <div class="slides-container">
+        <!-- Slide 1 -->
+        <div class="how-slide active" data-slide="0">
+          <div class="slide-badge">SLIDE 1 OF 3</div>
+          <h3 class="slide-title">1. INPUTS ARE MOVES</h3>
+          <p class="slide-text">
+            The input alphabet of our DFA is <strong>&Sigma; = { U, D, L, R }</strong>.
+            Each player keypress translates into a formal input symbol fed to the state machine:
+          </p>
+          <div class="controls-guide">
+            <div class="key-box"><span class="key">▲</span> or <span class="key">W</span> &rarr; <strong>U</strong> (Up)</div>
+            <div class="key-box"><span class="key">▼</span> or <span class="key">S</span> &rarr; <strong>D</strong> (Down)</div>
+            <div class="key-box"><span class="key">◀</span> or <span class="key">A</span> &rarr; <strong>L</strong> (Left)</div>
+            <div class="key-box"><span class="key">▶</span> or <span class="key">D</span> &rarr; <strong>R</strong> (Right)</div>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="how-slide hidden" data-slide="1">
+          <div class="slide-badge">SLIDE 2 OF 3</div>
+          <h3 class="slide-title">2. CELLS ARE STATES</h3>
+          <p class="slide-text">
+            Each safe grid cell directly maps to a distinct DFA state in <strong>Q</strong>:
+          </p>
+          <ul class="concepts-list">
+            <li><strong>q00</strong>: Starting state (Initial state &rarr; <strong>q0</strong>)</li>
+            <li><strong>qrc</strong>: Row <code>r</code>, Column <code>c</code> coordinate state</li>
+            <li><strong>q33</strong>: Goal destination (Accepting / Final state &in; <strong>F</strong>)</li>
+            <li><strong>Crash</strong>: Obstacle collision (Trap / Dead state)</li>
+          </ul>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="how-slide hidden" data-slide="2">
+          <div class="slide-badge">SLIDE 3 OF 3</div>
+          <h3 class="slide-title">3. RULES ARE TRANSITIONS</h3>
+          <p class="slide-text">
+            The transition function <strong>&delta;(state, symbol) &rarr; next_state</strong> governs all outcomes:
+          </p>
+          <div class="rules-grid">
+            <div class="rule-card">
+              <span class="rule-icon success">&bull;</span>
+              <strong>Open Path:</strong> Moves robot to new coordinate state.
+            </div>
+            <div class="rule-card">
+              <span class="rule-icon warning">&circlearrowleft;</span>
+              <strong>Boundary Wall:</strong> Self-loop transition. Robot stays in place (BLOCKED).
+            </div>
+            <div class="rule-card">
+              <span class="rule-icon danger">&times;</span>
+              <strong>Obstacle:</strong> Transitions to <strong>Crash</strong> trap state (STRING REJECTED).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-navigation">
+        <button id="btn-how-prev" class="retro-btn" disabled>&lt; PREV</button>
+        <div class="slide-indicators">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+        <button id="btn-how-next" class="retro-btn">NEXT &gt;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 4: LEVEL SELECT                                                -->
+  <!-- ===================================================================== -->
+  <section id="screen-level" class="screen hidden">
+    <div class="level-select-container">
+      <div class="top-nav-bar">
+        <button id="btn-level-back" class="retro-btn">&lt; MAIN MENU</button>
+        <h2>SELECT SIMULATION LEVEL</h2>
+        <div style="width: 80px;"></div>
+      </div>
+
+      <div class="level-cards-grid">
+        <!-- Level 1 Card -->
+        <div class="level-card" data-level="1">
+          <div class="level-badge active-badge">JFLAP DFA</div>
+          <h3 class="level-name">LEVEL 1: WARM-UP</h3>
+          <div class="level-meta">
+            <span>GRID: 4&times;4</span> &bull; 
+            <span>OBSTACLES: 3</span>
+          </div>
+          <p class="level-desc">
+            The primary DFA defined in <code>robot_navigation_dfa.jff</code>.
+            Navigate safely from q00 to q33 without triggering the Crash state.
+          </p>
+          <button class="retro-btn btn-play-level">START LEVEL 1 ▶</button>
+        </div>
+
+        <!-- Level 2 Card -->
+        <div class="level-card locked" data-level="2">
+          <div class="level-badge">EXPANSION</div>
+          <h3 class="level-name">LEVEL 2: MAZE RUNNER</h3>
+          <div class="level-meta">
+            <span>GRID: 6&times;6</span> &bull; 
+            <span>OBSTACLES: 8</span>
+          </div>
+          <p class="level-desc">
+            Larger grid state-space requiring strategic path planning and detour logic.
+          </p>
+          <button class="retro-btn btn-play-level" disabled>LOCKED 🔒</button>
+        </div>
+
+        <!-- Level 3 Card -->
+        <div class="level-card locked" data-level="3">
+          <div class="level-badge">CHALLENGE</div>
+          <h3 class="level-name">LEVEL 3: NIGHTMARE</h3>
+          <div class="level-meta">
+            <span>GRID: 8&times;8</span> &bull; 
+            <span>OBSTACLES: 16</span>
+          </div>
+          <p class="level-desc">
+            Complex labyrinth with dense obstacle clusters and narrow deterministic paths.
+          </p>
+          <button class="retro-btn btn-play-level" disabled>LOCKED 🔒</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SCREEN 5: GAME PLAY SCREEN                                            -->
+  <!-- ===================================================================== -->
+  <section id="screen-game" class="screen hidden">
+    <!-- Game Header Bar -->
+    <header class="game-header">
+      <div class="header-left">
+        <span class="game-level-tag" id="game-level-tag">LEVEL 1: WARM-UP</span>
+        <span class="game-timer" id="game-timer">⏱ 00:00</span>
+      </div>
+      <div class="header-center">
+        <span class="mascot-tag">DFA-9 RUNTIME ENGINE</span>
+      </div>
+      <div class="header-right">
+        <button id="btn-sound-toggle" class="retro-btn-icon" title="Toggle Sound [M]">🔊</button>
+        <button id="btn-open-dfa-viewer" class="retro-btn" title="View DFA Transition Table">📋 DFA TABLE</button>
+        <button id="btn-game-reset" class="retro-btn" title="Reset Session [R]">⟲ RESET</button>
+        <button id="btn-game-menu" class="retro-btn" title="Back to Menu">≡ MENU</button>
+      </div>
+    </header>
+
+    <!-- Main Game Play Split Container -->
+    <main class="game-layout">
+      <!-- Left: Visual Grid -->
+      <div class="grid-section">
+        <div class="grid-frame-outer">
+          <div class="grid-coordinate-bar-top" id="coord-cols">
+            <span class="coord-label">C0</span>
+            <span class="coord-label">C1</span>
+            <span class="coord-label">C2</span>
+            <span class="coord-label">C3</span>
+          </div>
+          <div class="grid-with-rows">
+            <div class="grid-coordinate-bar-left" id="coord-rows">
+              <span class="coord-label">R0</span>
+              <span class="coord-label">R1</span>
+              <span class="coord-label">R2</span>
+              <span class="coord-label">R3</span>
+            </div>
+            
+            <!-- Grid Container -->
+            <div class="grid-wrapper">
+              <div class="board-grid" id="board-grid">
+                <!-- Cells rendered dynamically via JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direction Controls & D-Pad -->
+        <div class="controls-panel">
+          <div class="dpad">
+            <button class="dpad-btn dpad-up" data-dir="UP" title="Move Up [W / ▲]">▲</button>
+            <div class="dpad-middle">
+              <button class="dpad-btn dpad-left" data-dir="LEFT" title="Move Left [A / ◀]">◀</button>
+              <div class="dpad-center"></div>
+              <button class="dpad-btn dpad-right" data-dir="RIGHT" title="Move Right [D / ▶]">▶</button>
+            </div>
+            <button class="dpad-btn dpad-down" data-dir="DOWN" title="Move Down [S / ▼]">▼</button>
+          </div>
+
+          <div class="legend-box">
+            <div class="legend-item"><span class="legend-swatch swatch-start">S</span> Start (q00)</div>
+            <div class="legend-item"><span class="legend-swatch swatch-goal">⚑</span> Goal (q33)</div>
+            <div class="legend-item"><span class="legend-swatch swatch-obstacle">✖</span> Obstacle</div>
+            <div class="legend-item"><span class="legend-swatch swatch-robot">●</span> Robot Dee</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: DFA Status & Live Telemetry Panel -->
+      <aside class="telemetry-section">
+        <div class="telemetry-card">
+          <div class="card-header">
+            <h3>DFA STATUS MONITOR</h3>
+            <span class="status-indicator live"></span>
+          </div>
+
+          <!-- Status Badge -->
+          <div class="status-badge-container">
+            <div id="status-badge" class="status-badge status-ready">READY</div>
+          </div>
+
+          <!-- Metrics Table -->
+          <div class="telemetry-table">
+            <div class="telemetry-row">
+              <span class="t-label">Current State:</span>
+              <span class="t-value highlight" id="stat-state">q00</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-label">Grid Position:</span>
+              <span class="t-value" id="stat-position">(0, 0)</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-label">Last Move:</span>
+              <span class="t-value" id="stat-last-move">None</span>
+            </div>
+            <div class="telemetry-row">
+              <span class="t-label">Total Moves:</span>
+              <span class="t-value" id="stat-moves">0</span>
+            </div>
+          </div>
+
+          <!-- Input String Stream -->
+          <div class="input-string-container">
+            <div class="input-string-header">INPUT STRING (w &in; &Sigma;*):</div>
+            <div class="input-string-display" id="input-string-display">
+              <span class="placeholder-string">&epsilon; (empty)</span>
+            </div>
+          </div>
+
+          <!-- Dee's Dialogue Speech Bubble -->
+          <div class="dee-dialogue-box">
+            <div class="dialogue-avatar">🤖</div>
+            <div class="dialogue-speech" id="dialogue-speech">
+              "System online! Ready to accept input symbols from &Sigma; = {U, D, L, R}."
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL / POPUP: RESULT (WIN / CRASH)                                  -->
+  <!-- ===================================================================== -->
+  <div id="modal-result" class="modal-backdrop hidden">
+    <div class="modal-dialog result-dialog" id="result-dialog">
+      <div class="result-header" id="result-header">
+        <h2 id="result-title">🎉 GOAL REACHED! 🎉</h2>
+      </div>
+      <div class="result-body">
+        <div class="result-verdict" id="result-verdict">STRING ACCEPTED</div>
+        <div class="result-stars" id="result-stars">★★★</div>
+        
+        <div class="result-details">
+          <div class="res-row">
+            <span>Final State:</span>
+            <strong id="result-final-state">q33 (accepting)</strong>
+          </div>
+          <div class="res-row">
+            <span>Input String:</span>
+            <code id="result-input-string">R R R D D D</code>
+          </div>
+          <div class="res-row">
+            <span>Total Moves:</span>
+            <strong id="result-move-count">6</strong>
+          </div>
+        </div>
+      </div>
+      <div class="result-footer">
+        <button id="btn-result-retry" class="retro-btn">RETRY [R]</button>
+        <button id="btn-result-menu" class="retro-btn">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: DFA VIEWER & TRANSITION TABLE                                  -->
+  <!-- ===================================================================== -->
+  <div id="modal-dfa-viewer" class="modal-backdrop hidden">
+    <div class="modal-dialog dfa-dialog">
+      <div class="modal-header">
+        <h2>DFA TRANSITION VIEWER & VALIDATOR</h2>
+        <button id="btn-dfa-close" class="retro-btn-close">✖</button>
+      </div>
+
+      <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="tab-table">TRANSITION TABLE &delta;</button>
+        <button class="tab-btn" data-tab="tab-tuple">5-TUPLE DEFINITION</button>
+        <button class="tab-btn" data-tab="tab-tester">STRING TESTER</button>
+      </div>
+
+      <div class="tab-content" id="tab-table">
+        <p class="tab-hint">
+          Live transition lookup table parsed directly from <code>robot_navigation_dfa.jff</code>.
+          The current active state is highlighted in cyan.
+        </p>
+        <div class="table-scroll-wrap">
+          <table class="dfa-table" id="dfa-transition-table">
+            <thead>
+              <tr>
+                <th>State (q)</th>
+                <th>U</th>
+                <th>D</th>
+                <th>L</th>
+                <th>R</th>
+              </tr>
+            </thead>
+            <tbody id="dfa-table-body">
+              <!-- Populated dynamically via /api/dfa/info -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-tuple">
+        <div class="automata-tuple-box">
+          <h3>M = ( Q, &Sigma;, &delta;, q<sub>0</sub>, F )</h3>
+          <div class="tuple-item">
+            <strong>Q (States):</strong>
+            <span id="tuple-states">Loading...</span>
+          </div>
+          <div class="tuple-item">
+            <strong>&Sigma; (Alphabet):</strong>
+            <span>{ U, D, L, R }</span>
+          </div>
+          <div class="tuple-item">
+            <strong>q<sub>0</sub> (Start State):</strong>
+            <span id="tuple-start">q00</span>
+          </div>
+          <div class="tuple-item">
+            <strong>F (Accepting States):</strong>
+            <span id="tuple-final">{ q33 }</span>
+          </div>
+          <div class="tuple-item">
+            <strong>Trap / Crash State:</strong>
+            <span class="danger-text">Crash (Sink / Rejecting state)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-tester">
+        <div class="string-tester-box">
+          <p>Test an input string sequentially against the loaded DFA:</p>
+          <div class="tester-input-row">
+            <input type="text" id="tester-string-input" placeholder="e.g. RRRDDD" class="retro-input" maxlength="40">
+            <button id="btn-run-tester" class="retro-btn">TEST STRING</button>
+          </div>
+          <div id="tester-output" class="tester-output">
+            <div class="tester-step-info">Enter an input string containing only U, D, L, R.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: MODULE IMPLEMENTATION NOTICE (NOT IMPLEMENTED BANNER)          -->
+  <!-- ===================================================================== -->
+  <div id="modal-notice" class="modal-backdrop hidden">
+    <div class="modal-dialog notice-dialog">
+      <div class="modal-header">
+        <h2 class="warning-title">⚠️ TEAM INTEGRATION NOTICE</h2>
+        <button id="btn-notice-close" class="retro-btn-close">✖</button>
+      </div>
+      <div class="notice-body">
+        <div class="notice-badge">STATUS: NOT_IMPLEMENTED (HTTP 501)</div>
+        <p id="notice-message" class="notice-message">
+          Backend component pending implementation.
+        </p>
+        <div class="notice-explanation">
+          <p>
+            As per project team guidelines, Ankur (Person 2) has completed the Flask backend,
+            API endpoints, JFF integration, and frontend GUI.
+          </p>
+          <p id="notice-owner-guidance">
+            <strong>Next Step:</strong> Jiya (Person 1) or Pavithra (Person 3) must implement
+            their assigned Python module to enable live state movement.
+          </p>
+        </div>
+      </div>
+      <div class="notice-footer">
+        <button id="btn-notice-view-dfa" class="retro-btn">VIEW DFA IN VIEWER</button>
+        <button id="btn-notice-ok" class="retro-btn active-hover">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Client Controller -->
+  <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html>
