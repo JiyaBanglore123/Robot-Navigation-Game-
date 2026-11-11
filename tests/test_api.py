@@ -231,17 +231,16 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(res1.get_json()["status"], "NOT_IMPLEMENTED")
         self.assertIn("Jiya", res1.get_json()["error"])
 
-        # Manager using real boilerplate GameState (which raises NotImplementedError)
-        unimpl_state_mgr = GameManager(
+        # Pavithra's GameState is now implemented, so starting a game succeeds
+        impl_state_mgr = GameManager(
             dfa_engine_cls=MockDFAEngine,
             game_state_cls=GameState,
             levels=self.mock_levels
         )
-        client2 = create_app(game_manager=unimpl_state_mgr).test_client()
+        client2 = create_app(game_manager=impl_state_mgr).test_client()
         res2 = client2.post("/api/game/start", json={"level": 1})
-        self.assertEqual(res2.status_code, 501)
-        self.assertEqual(res2.get_json()["status"], "NOT_IMPLEMENTED")
-        self.assertIn("Pavithra", res2.get_json()["error"])
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.get_json()["state"]["status"], "READY")
 
         # Test move raising NotImplementedError
         failing_move_mgr = GameManager(
