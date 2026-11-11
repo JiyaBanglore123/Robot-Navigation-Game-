@@ -263,23 +263,7 @@ For full contract specifications, consult [INTEGRATION.md](file:///run/media/ank
 
 ---
 
-## 12. Remaining Tasks for Pavithra (Person 3)
-
-- [ ] Define grid levels in `game/grid_config.py` under `LEVELS`.
-- [ ] Implement `GameState.__init__`:
-  - [ ] Coordinate initial state synchronization ($q_{00} \leftrightarrow (0, 0)$).
-- [ ] Implement `GameState.move(direction)`:
-  - [ ] Call `dfa_engine.process_movement`.
-  - [ ] Update position coordinates and move counter.
-- [ ] Implement `GameState.reset()`:
-  - [ ] Reset robot to starting cell and reset move counter.
-- [ ] Implement `GameState.get_state()`:
-  - [ ] Return serializable dictionary representing the game state.
-- [ ] Prepare demonstration scenarios and integration tests.
-
----
-
-## 13. Running Automated Tests
+## 12. Running Automated Tests
 
 Run Ankur's unit and API test suite:
 ```bash
