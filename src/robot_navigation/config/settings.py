@@ -9,14 +9,8 @@ from pathlib import Path
 # Base project root directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
-# Prefer a project-root DFA supplied by the user; keep the checked-in asset
-# as a fallback for clean clones.
-_ROOT_DFA_PATH = BASE_DIR / "robot_navigation_dfa.jff"
-_ASSET_DFA_PATH = BASE_DIR / "assets" / "robot_navigation_dfa.jff"
-JFF_PATH = os.environ.get(
-    "DFA_JFF_PATH",
-    str(_ROOT_DFA_PATH if _ROOT_DFA_PATH.exists() else _ASSET_DFA_PATH)
-)
+ASSETS_DIR = BASE_DIR / "assets"
+STATE_CONFIG_PATH = ASSETS_DIR / "state_config.yaml"
 
 # Network settings
 HOST = os.environ.get("FLASK_RUN_HOST", "127.0.0.1")

@@ -11,7 +11,7 @@ import networkx as nx
 from robot_navigation.app import GameManager, create_app
 from robot_navigation.automata.dfa_engine import DFAEngine, TransitionResult
 from robot_navigation.game.game_state import GameState
-from robot_navigation.game.grid_config import LevelConfig
+from robot_navigation.game.grid_config import LEVELS, LevelConfig, state_to_position
 
 
 # ==============================================================================
@@ -63,13 +63,14 @@ class MockGameState(GameState):
     def get_state(self) -> Dict[str, Any]:
         return {
             "current_state": self.current_state,
-            "robot_position": [0, 1] if self.move_counter > 0 else [0, 0],
+            "robot_position": [0, 1] if self.move_counter > 0 else list(state_to_position(self.level_config["start"])),
             "status": self.status,
             "move_count": self.move_counter,
-            "goal_position": [3, 3],
-            "obstacles": [[1, 1], [2, 2], [3, 1]],
+            "goal_position": list(state_to_position(self.level_config["goal"])),
+            "obstacles": [list(state_to_position(state)) for state in self.level_config["obstacles"]],
             "rows": self.level_config["rows"],
-            "cols": self.level_config["cols"]
+            "cols": self.level_config["cols"],
+            "start_position": list(state_to_position(self.level_config["start"]))
         }
 
 
@@ -87,15 +88,7 @@ class TestFlaskAPI(unittest.TestCase):
 
     def setUp(self):
         """Set up test clients with mocked and unmocked game managers."""
-        self.mock_levels: Dict[int, LevelConfig] = {
-            1: {
-                "rows": 4,
-                "cols": 4,
-                "start": "q00",
-                "goal": "q33",
-                "obstacles": ["q11", "q22", "q31"]
-            }
-        }
+        self.mock_levels: Dict[int, LevelConfig] = {1: LEVELS[1]}
 
         # Manager with mocked dependencies for successful flow tests
         self.mocked_manager = GameManager(
@@ -113,6 +106,8 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"DFA-9", response.data)
         self.assertIn(b"ROBOT NAVIGATION", response.data)
+        self.assertNotIn(b"q00", response.data)
+        self.assertNotIn(b"q33", response.data)
 
     # 2. Static assets served
     def test_static_assets(self):
@@ -136,6 +131,27 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(data["data"]["alphabet"], ["D", "L", "R", "U"])
         self.assertIn("q00", data["data"]["transition_table"])
         self.assertEqual(len(data["data"]["states"]), 14)
+        self.assertEqual(data["data"]["trap_state"], LEVELS[1]["trap_state"])
+
+    def test_levels_endpoint_returns_yaml_configuration(self):
+        response = self.client.get("/api/levels")
+        self.assertEqual(response.status_code, 200)
+        level = response.get_json()["levels"][0]
+        self.assertEqual(level["file_name"], LEVELS[1]["file_name"])
+        self.assertEqual(level["start_state"], LEVELS[1]["start"])
+        self.assertEqual(level["end_state"], LEVELS[1]["goal"])
+        self.assertEqual(level["title"], LEVELS[1]["title"])
+
+    def test_additional_configured_level_starts_without_code_changes(self):
+        manager = GameManager(levels={1: LEVELS[1], 2: LEVELS[1]})
+        client = create_app(game_manager=manager).test_client()
+
+        levels_response = client.get("/api/levels")
+        self.assertEqual(len(levels_response.get_json()["levels"]), 2)
+
+        start_response = client.post("/api/game/start", json={"level": 2})
+        self.assertEqual(start_response.status_code, 200)
+        self.assertEqual(start_response.get_json()["state"]["level"], 2)
 
     # 4. Invalid JSON request handling
     def test_invalid_json_request_handling(self):
@@ -277,9 +293,10 @@ class TestFlaskAPI(unittest.TestCase):
 
     # 11. Missing JFF file handling
     def test_missing_jff_file(self):
-        """Test that a missing JFF file raises FileNotFoundError on GameManager creation."""
+        """A missing configured JFF file fails when that level starts."""
+        missing_level = {**LEVELS[1], "jff_path": "non_existent_file.jff"}
         with self.assertRaises(FileNotFoundError):
-            GameManager(jff_path="non_existent_file.jff")
+            GameManager(levels={1: missing_level}).start_game(1)
 
 
 if __name__ == "__main__":

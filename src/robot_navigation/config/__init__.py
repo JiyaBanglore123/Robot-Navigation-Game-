@@ -4,7 +4,8 @@ Configuration package.
 
 from .settings import (
     BASE_DIR,
-    JFF_PATH,
+    ASSETS_DIR,
+    STATE_CONFIG_PATH,
     HOST,
     PORT,
     DEBUG,
@@ -15,7 +16,8 @@ from .settings import (
 
 __all__ = [
     "BASE_DIR",
-    "JFF_PATH",
+    "ASSETS_DIR",
+    "STATE_CONFIG_PATH",
     "HOST",
     "PORT",
     "DEBUG",

@@ -13,6 +13,12 @@
 
 'use strict';
 
+function escapeHtml(value) {
+  const element = document.createElement('span');
+  element.textContent = value;
+  return element.innerHTML;
+}
+
 // ============================================================================
 // 1. CENTRALIZED API LAYER (ANKUR)
 // ============================================================================
@@ -87,8 +93,18 @@ const api = {
    * Fetch static DFA definition and transition table.
    * @returns {Promise<Object>}
    */
-  async getDfaInfo() {
-    const response = await fetch('/api/dfa/info');
+  async getDfaInfo(level) {
+    const query = level === undefined ? '' : `?level=${encodeURIComponent(level)}`;
+    const response = await fetch(`/api/dfa/info${query}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw { status: response.status, data };
+    }
+    return data;
+  },
+
+  async getLevels() {
+    const response = await fetch('/api/levels');
     const data = await response.json();
     if (!response.ok) {
       throw { status: response.status, data };
@@ -218,7 +234,7 @@ const DEE_DIALOGUES = {
   ready: [
     "Ready for instructions. Where shall we transition?",
     "Deterministic Finite Automaton online. Feed me symbols!",
-    "Standing by at initial state q00."
+    "Standing by at the configured initial state."
   ],
   moving: [
     "Beep boop, moving!",
@@ -235,7 +251,7 @@ const DEE_DIALOGUES = {
   ],
   crashed: [
     "Well, that went poorly.",
-    "Entered the Crash trap state. No exit!",
+    "Entered the trap state. No exit!",
     "I regret everything.",
     "Automaton rejected the string. Trap state triggered."
   ],
@@ -259,10 +275,11 @@ function getRandomDeeLine(category) {
 class GameController {
   constructor() {
     // Session state
-    this.currentLevel = 1;
-    this.currentGridSize = { rows: 4, cols: 4 };
-    this.robotPosition = [0, 0];
-    this.visitedPositions = new Set(['0,0']);
+    this.currentLevel = null;
+    this.currentGridSize = { rows: 0, cols: 0 };
+    this.robotPosition = null;
+    this.visitedPositions = new Set();
+    this.renderedLevel = null;
     this.inputString = [];
     this.moveCount = 0;
     this.isProcessingMove = false;
@@ -303,7 +320,7 @@ class GameController {
 
   init() {
     this.bindEvents();
-    this.loadDfaInfo();
+    this.loadLevels();
     this.runBootSequence();
   }
 
@@ -450,11 +467,9 @@ class GameController {
 
     // Level selection
     document.getElementById('btn-level-back').addEventListener('click', () => this.showScreen('title'));
-    document.querySelectorAll('.level-card:not(.locked)').forEach(card => {
-      card.querySelector('.btn-play-level').addEventListener('click', () => {
-        const level = parseInt(card.dataset.level, 10);
-        this.startLevel(level);
-      });
+    document.querySelector('.level-cards-grid').addEventListener('click', event => {
+      const button = event.target.closest('.btn-play-level');
+      if (button) this.startLevel(Number(button.closest('.level-card').dataset.level));
     });
 
     // In-game buttons
@@ -592,16 +607,22 @@ class GameController {
   // --------------------------------------------------------------------------
   async startLevel(level) {
     this.currentLevel = level;
-    document.getElementById('game-level-tag').textContent = `LEVEL ${level}: WARM-UP`;
+    this.isGameOver = false;
+    this.inputString = [];
+    this.moveCount = 0;
+    this.visitedPositions.clear();
+    this.renderedLevel = null;
+    this.renderInputString();
     this.showScreen('game');
-
-    // Initialize layout default grid (4x4)
-    this.setupEmptyGrid(4, 4);
-    this.startTimer();
 
     try {
       const result = await api.startGame(level);
-      this.applyGameState(result.state || result);
+      document.getElementById('game-level-tag').textContent = result.level_info.title;
+      this.dfaData = result.dfa_info;
+      this.populateDfaTable(result.dfa_info);
+      this.populateDfaTuple(result.dfa_info);
+      this.applyGameState(result.state);
+      this.startTimer();
     } catch (err) {
       this.handleApiError(err, 'Starting Game');
     }
@@ -634,14 +655,16 @@ class GameController {
   async resetGame() {
     try {
       const response = await api.resetGame();
+      const gameState = response.state || response;
       soundManager.playMove();
       this.isGameOver = false;
       this.inputString = [];
+      this.renderInputString();
       this.visitedPositions.clear();
-      this.visitedPositions.add('0,0');
+      this.visitedPositions.add(gameState.start_position.join(','));
       this.resetTimer();
 
-      const gameState = response.state || response;
+      this.renderedLevel = null;
       this.applyGameState(gameState);
       this.updateStatusBadge('READY', 'status-ready');
       this.setDialogue(getRandomDeeLine('ready'));
@@ -655,9 +678,25 @@ class GameController {
   // --------------------------------------------------------------------------
   setupEmptyGrid(rows, cols) {
     this.currentGridSize = { rows, cols };
-    this.gridElement.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
-    this.gridElement.style.gridTemplateRows = `repeat(${rows}, 80px)`;
+    this.gridElement.style.setProperty('--grid-cols', cols);
+    this.gridElement.style.setProperty('--grid-rows', rows);
     this.gridElement.innerHTML = '';
+    const colLabels = document.getElementById('coord-cols');
+    const rowLabels = document.getElementById('coord-rows');
+    colLabels.innerHTML = '';
+    rowLabels.innerHTML = '';
+    for (let c = 0; c < cols; c++) {
+      const label = document.createElement('span');
+      label.className = 'coord-label';
+      label.textContent = `C${c}`;
+      colLabels.appendChild(label);
+    }
+    for (let r = 0; r < rows; r++) {
+      const label = document.createElement('span');
+      label.className = 'coord-label';
+      label.textContent = `R${r}`;
+      rowLabels.appendChild(label);
+    }
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -669,46 +708,44 @@ class GameController {
 
         const label = document.createElement('span');
         label.className = 'cell-label';
-        label.textContent = `q${r}${c}`;
+        label.textContent = this.gridState.grid_states[r][c];
         cell.appendChild(label);
 
-        // Standard positions for Level 1 DFA
-        if (r === 0 && c === 0) cell.classList.add('start-cell');
-        if (r === 3 && c === 3) cell.classList.add('goal-cell');
-        if ((r === 1 && c === 1) || (r === 2 && c === 2) || (r === 3 && c === 1)) {
-          cell.classList.add('obstacle-cell');
-        }
+        const stateName = label.textContent;
+        if (stateName === this.gridState.start_state) cell.classList.add('start-cell');
+        if (stateName === this.gridState.goal_state) cell.classList.add('goal-cell');
+        if (this.gridState.obstacle_states.includes(stateName)) cell.classList.add('obstacle-cell');
 
         this.gridElement.appendChild(cell);
       }
     }
 
-    this.renderRobotAt(0, 0);
+    this.renderRobotAt(...this.gridState.start_position);
   }
 
   applyGameState(state, lastDirection = null, symbol = null) {
     if (!state) return;
 
     // 1. Update Position & Dimensions
-    if (state.rows && state.cols) {
-      if (state.rows !== this.currentGridSize.rows || state.cols !== this.currentGridSize.cols) {
-        this.setupEmptyGrid(state.rows, state.cols);
-      }
+    if (state.rows && state.cols && (
+      state.level !== this.renderedLevel ||
+      state.rows !== this.currentGridSize.rows ||
+      state.cols !== this.currentGridSize.cols
+    )) {
+      this.gridState = state;
+      this.setupEmptyGrid(state.rows, state.cols);
+      this.renderedLevel = state.level;
     }
 
     // 2. Extract Robot Position
-    let r = 0, c = 0;
+    let r, c;
     if (Array.isArray(state.robot_position)) {
       [r, c] = state.robot_position;
     } else if (state.robot_position && typeof state.robot_position.row === 'number') {
       r = state.robot_position.row;
       c = state.robot_position.col;
-    } else if (typeof state.current_state === 'string' && state.current_state.startsWith('q')) {
-      const match = state.current_state.match(/^q(\d)(\d)$/);
-      if (match) {
-        r = parseInt(match[1], 10);
-        c = parseInt(match[2], 10);
-      }
+    } else {
+      [r, c] = state.start_position;
     }
 
     this.robotPosition = [r, c];
@@ -727,7 +764,7 @@ class GameController {
     this.statMoves.textContent = this.moveCount;
 
     // 5. Update Status and Telemetry
-    const currentStateName = state.current_state || `q${r}${c}`;
+    const currentStateName = state.current_state;
     this.statState.textContent = currentStateName;
     this.statPos.textContent = `(${r}, ${c})`;
     this.statLastMove.textContent = symbol ? `${symbol} (${lastDirection})` : (lastDirection || 'None');
@@ -864,7 +901,7 @@ class GameController {
     const dialog = document.getElementById('result-dialog');
 
     dialog.className = `modal-dialog result-dialog ${type}`;
-    finalStateEl.textContent = finalState || (type === 'win' ? 'q33 (accepting)' : 'Crash (trap state)');
+    finalStateEl.textContent = finalState;
     inputStrEl.textContent = this.inputString.join(' ') || '(none)';
     movesEl.textContent = this.moveCount;
 
@@ -914,31 +951,70 @@ class GameController {
   // --------------------------------------------------------------------------
   // DFA Viewer & String Tester
   // --------------------------------------------------------------------------
-  async loadDfaInfo() {
+  async loadLevels() {
     try {
-      const res = await api.getDfaInfo();
-      if (res.success && res.data) {
-        this.dfaData = res.data;
-        this.populateDfaTable(res.data);
-        this.populateDfaTuple(res.data);
-      }
+      const response = await api.getLevels();
+      const container = document.querySelector('.level-cards-grid');
+      container.innerHTML = '';
+      response.levels.forEach(level => {
+        const card = document.createElement('article');
+        card.className = 'level-card';
+        card.dataset.level = level.level;
+
+        const badge = document.createElement('div');
+        badge.className = 'level-badge active-badge';
+        badge.textContent = level.title;
+        const heading = document.createElement('h3');
+        heading.className = 'level-name';
+        heading.textContent = `LEVEL ${level.level}: ${level.title}`;
+        const metadata = document.createElement('div');
+        metadata.className = 'level-meta';
+        metadata.textContent =
+          `GRID: ${level.num_grid_rows}×${level.num_grid_cols} · OBSTACLES: ${level.num_obstacles}`;
+        const description = document.createElement('p');
+        description.className = 'level-desc';
+        description.textContent = level.description;
+        const button = document.createElement('button');
+        button.className = 'retro-btn btn-play-level';
+        button.textContent = `START LEVEL ${level.level} ▶`;
+        card.append(badge, heading, metadata, description, button);
+        container.appendChild(card);
+      });
+      if (response.levels.length) await this.loadDfaInfo(response.levels[0].level);
     } catch (err) {
-      console.warn('Could not pre-load DFA info:', err);
+      console.error('Could not load configured levels:', err);
     }
+  }
+
+  async loadDfaInfo(level) {
+    const response = await api.getDfaInfo(level);
+    this.dfaData = response.data;
+    this.populateDfaTable(response.data);
+    this.populateDfaTuple(response.data);
   }
 
   populateDfaTable(data) {
     const tbody = document.getElementById('dfa-table-body');
     tbody.innerHTML = '';
 
-    const states = data.states || [];
-    const table = data.transition_table || {};
-    const alphabet = data.alphabet || ['U', 'D', 'L', 'R'];
+    const states = data.states;
+    const table = data.transition_table;
+    const alphabet = data.alphabet;
+    const header = document.getElementById('dfa-table-header');
+    header.innerHTML = '';
+    const stateHeader = document.createElement('th');
+    stateHeader.textContent = 'State';
+    header.appendChild(stateHeader);
+    alphabet.forEach(symbol => {
+      const th = document.createElement('th');
+      th.textContent = symbol;
+      header.appendChild(th);
+    });
 
     states.forEach(s => {
       const tr = document.createElement('tr');
       tr.id = `dfa-row-${s.name}`;
-      if (s.name === 'Crash') tr.className = 'crash-row';
+      if (s.name === data.trap_state) tr.className = 'crash-row';
 
       let statePrefix = '';
       if (s.initial) statePrefix += '→ ';
@@ -948,7 +1024,7 @@ class GameController {
       tdState.textContent = `${statePrefix}${s.name}`;
       tr.appendChild(tdState);
 
-      const stateTransitions = table[s.name] || {};
+      const stateTransitions = table[s.name];
       alphabet.forEach(sym => {
         const td = document.createElement('td');
         td.id = `cell-dfa-${s.name}-${sym}`;
@@ -964,13 +1040,16 @@ class GameController {
     const statesEl = document.getElementById('tuple-states');
     const startEl = document.getElementById('tuple-start');
     const finalEl = document.getElementById('tuple-final');
+    const alphabetEl = document.getElementById('tuple-alphabet');
 
     if (statesEl) {
-      const names = (data.states || []).map(s => s.name);
+      const names = data.states.map(s => s.name);
       statesEl.textContent = `{ ${names.join(', ')} }`;
     }
-    if (startEl) startEl.textContent = data.initial_state || 'q00';
-    if (finalEl) finalEl.textContent = `{ ${(data.final_states || []).join(', ')} }`;
+    if (startEl) startEl.textContent = data.initial_state;
+    if (finalEl) finalEl.textContent = `{ ${data.final_states.join(', ')} }`;
+    if (alphabetEl) alphabetEl.textContent = `{ ${data.alphabet.join(', ')} }`;
+    document.getElementById('tuple-trap').textContent = data.trap_state;
   }
 
   highlightDfaRow(stateName, lastSymbol = null) {
@@ -1002,34 +1081,34 @@ class GameController {
       return;
     }
 
-    const alphabet = new Set(this.dfaData.alphabet || ['U', 'D', 'L', 'R']);
-    const transitions = this.dfaData.transition_table || {};
-    const finalStates = new Set(this.dfaData.final_states || ['q33']);
-    let currentState = this.dfaData.initial_state || 'q00';
+    const alphabet = new Set(this.dfaData.alphabet);
+    const transitions = this.dfaData.transition_table;
+    const finalStates = new Set(this.dfaData.final_states);
+    let currentState = this.dfaData.initial_state;
 
-    let log = [`<strong>Start State:</strong> ${currentState}`];
+    let log = [`<strong>Start State:</strong> ${escapeHtml(currentState)}`];
     let rejected = false;
 
     for (let i = 0; i < rawStr.length; i++) {
       const sym = rawStr[i];
       if (!alphabet.has(sym)) {
-        log.push(`<span class="danger-text">Symbol '${sym}' not in alphabet &Sigma;!</span>`);
+        log.push(`<span class="danger-text">Symbol '${escapeHtml(sym)}' not in alphabet &Sigma;!</span>`);
         rejected = true;
         break;
       }
 
-      const nextState = transitions[currentState] ? transitions[currentState][sym] : null;
-      if (!nextState) {
-        log.push(`&delta;(${currentState}, '${sym}') &rarr; undefined (REJECTED)`);
+      const nextState = transitions[currentState]?.[sym];
+      if (nextState === undefined) {
+        log.push(`&delta;(${escapeHtml(currentState)}, '${escapeHtml(sym)}') &rarr; undefined (REJECTED)`);
         rejected = true;
         break;
       }
 
-      log.push(`&delta;(${currentState}, '${sym}') &rarr; <strong>${nextState}</strong>`);
+      log.push(`&delta;(${escapeHtml(currentState)}, '${escapeHtml(sym)}') &rarr; <strong>${escapeHtml(nextState)}</strong>`);
       currentState = nextState;
 
-      if (currentState === 'Crash') {
-        log.push(`<span class="danger-text">Entered trap state 'Crash'. String REJECTED.</span>`);
+      if (currentState === this.dfaData.trap_state) {
+        log.push(`<span class="danger-text">Entered trap state '${escapeHtml(this.dfaData.trap_state)}'. String REJECTED.</span>`);
         rejected = true;
         break;
       }
@@ -1037,7 +1116,7 @@ class GameController {
 
     const isAccepted = !rejected && finalStates.has(currentState);
     log.push('<hr style="border-color: var(--border-dim); margin: 6px 0;">');
-    log.push(`<strong>Final State:</strong> ${currentState}`);
+    log.push(`<strong>Final State:</strong> ${escapeHtml(currentState)}`);
     log.push(isAccepted 
       ? '<strong style="color: var(--color-green);">VERDICT: STRING ACCEPTED &in; L(M) 🎉</strong>'
       : '<strong style="color: var(--color-red);">VERDICT: STRING REJECTED &notin; L(M) ✖</strong>');

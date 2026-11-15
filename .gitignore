@@ -4,3 +4,4 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .codex/
+/assets/JFLAP7.1.jar

@@ -10,19 +10,19 @@ Status values exposed to the frontend:
     READY    - fresh game, no moves yet
     MOVING   - last move took the robot to a new cell
     BLOCKED  - last move hit the outer wall (DFA self-loop), robot stayed put
-    CRASHED  - robot hit an obstacle (DFA entered the Crash trap state)
+    CRASHED  - robot hit an obstacle (DFA entered the configured trap state)
     WON      - robot reached the goal (accepting state)
 """
 
 from typing import Any, Optional
 
-from .grid_config import CRASH_STATE, LevelConfig, state_to_position
+from .grid_config import LevelConfig, position_to_state, state_to_position
 
 # Terminal statuses: no further moves are accepted.
 GAME_OVER_STATUSES = {"CRASHED", "WON"}
 
 # Movement symbol -> (row delta, col delta); used only to report which
-# obstacle cell the robot crashed into (the Crash state has no coordinates).
+# obstacle cell the robot crashed into (the trap state has no coordinates).
 _SYMBOL_DELTAS = {"U": (-1, 0), "D": (1, 0), "L": (0, -1), "R": (0, 1)}
 
 
@@ -38,6 +38,7 @@ class GameState:
         self.cols: int = level_config["cols"]
         self.start_state: str = level_config["start"]
         self.goal_state: str = level_config["goal"]
+        self.trap_state: str = level_config["trap_state"]
 
         self.start_position = self._require_position(self.start_state, "start")
         self.goal_position = self._require_position(self.goal_state, "goal")
@@ -80,7 +81,7 @@ class GameState:
         self.input_string.append(direction)
 
         # 6-7. Synchronize grid position and determine status.
-        if engine_status == "CRASHED" or next_state == CRASH_STATE:
+        if engine_status == "CRASHED" or next_state == self.trap_state:
             self.status = "CRASHED"
             # Robot stays drawn on its last valid cell; record the obstacle hit.
             self.crash_position = self._step(self.robot_position, direction)
@@ -124,6 +125,17 @@ class GameState:
             "obstacles": [list(pos) for pos in self.obstacle_positions],
             "rows": self.rows,
             "cols": self.cols,
+            "level": self.level_config.get("level"),
+            "title": self.level_config["title"],
+            "description": self.level_config["description"],
+            "start_state": self.start_state,
+            "goal_state": self.goal_state,
+            "obstacle_states": list(self.level_config["obstacles"]),
+            "trap_state": self.trap_state,
+            "grid_states": [
+                [position_to_state(row, col) for col in range(self.cols)]
+                for row in range(self.rows)
+            ],
             # Extra fields (ignored safely by the frontend if unused):
             "start_position": list(self.start_position),
             "input_string": "".join(self.input_string),
@@ -148,7 +160,7 @@ class GameState:
         if state is None:
             return None
         state = str(state)
-        if state == CRASH_STATE or state_to_position(state) is not None:
+        if state == self.trap_state or state_to_position(state) is not None:
             return state
         graph = getattr(self.dfa_engine, "graph", None)
         if graph is not None and state in graph.nodes:

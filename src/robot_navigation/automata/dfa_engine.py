@@ -11,13 +11,13 @@ class TransitionResult(TypedDict):
 
 class DFAEngine:
     ALPHABET = frozenset({"U", "D", "L", "R"})
-    CRASH_STATE = "Crash"
 
     def __init__(self, graph: nx.MultiDiGraph):
         if not isinstance(graph, nx.MultiDiGraph):
             raise TypeError("DFAEngine requires a NetworkX MultiDiGraph.")
 
         self.graph = graph
+        self.trap_state = graph.graph.get("trap_state")
         self.alphabet = self.ALPHABET
         self.state_names: dict[str, str] = {}
         aliases: dict[str, str] = {}
@@ -99,7 +99,7 @@ class DFAEngine:
                 "message": f"No transition from state '{state}' on '{movement}'.",
             }
 
-        if next_state == self.CRASH_STATE:
+        if next_state == self.trap_state:
             status = "CRASHED"
             message = "The robot hit an obstacle. The input string is rejected."
         elif next_state in self.accepting_states:
