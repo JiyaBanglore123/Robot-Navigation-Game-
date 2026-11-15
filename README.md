@@ -219,37 +219,7 @@ Returns static transition table, alphabet, initial state, and accepting states p
 
 ---
 
-## 8. Module Responsibilities (Strict Boundaries)
-
-| Team Member | Role | Assigned Files | Status |
-|---|---|---|---|
-| **Jiya (Person 1)** | DFA Design & Transition Logic | `robot_navigation_dfa.jff`, `src/robot_navigation/automata/dfa_engine.py` | **Completed** |
-| **Ankur (Person 2)** | Backend, API, Frontend, Integration | `src/robot_navigation/app.py`, `src/robot_navigation/web/`, `src/robot_navigation/config/`, `run.sh`, `run.bat`, `tests/` | **Completed** |
-| **Pavithra (Person 3)** | Grid Config & Game State Coordination | `src/robot_navigation/game/grid_config.py`, `src/robot_navigation/game/game_state.py` | **Completed** |
-
----
-
-## 9. Integration Instructions
-
-The DFA engine, configured level, and game-state manager are integrated with the Flask
-API. Start the server using `run.bat` on Windows or `./run.sh` on Linux, open
-`http://127.0.0.1:5000`, and start Level 1 to play.
-
-For full contract specifications, consult [INTEGRATION.md](INTEGRATION.md).
-
----
-
-## 10. Implementation Status
-
-The assigned DFA, game-state, and API work is implemented. The following checklist
-records Jiya's completed deliverables:
-- [x] Construct the transition lookup dictionary from the parsed NetworkX MultiDiGraph in `DFAEngine.__init__`.
-- [x] Implement `DFAEngine.process_movement(current_state, movement)` and classify `PLAYING`, `CRASHED`, `WON`, and `INVALID` outcomes.
-- [x] Add automata-specific test cases for transition correctness, accepting states, and crash detection.
-
----
-
-## 11. Running Automated Tests
+## 8. Running Automated Tests
 
 Run the unit, automata, game-state, and API test suites:
 ```bash
