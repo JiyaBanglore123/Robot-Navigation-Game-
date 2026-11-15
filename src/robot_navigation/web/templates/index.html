@@ -474,27 +474,26 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL: MODULE IMPLEMENTATION NOTICE (NOT IMPLEMENTED BANNER)          -->
+  <!-- MODAL: API / SERVER ERROR NOTICE                                      -->
   <!-- ===================================================================== -->
   <div id="modal-notice" class="modal-backdrop hidden">
     <div class="modal-dialog notice-dialog">
       <div class="modal-header">
-        <h2 class="warning-title">⚠️ TEAM INTEGRATION NOTICE</h2>
+        <h2 class="warning-title">⚠️ SERVER NOTICE</h2>
         <button id="btn-notice-close" class="retro-btn-close">✖</button>
       </div>
       <div class="notice-body">
-        <div class="notice-badge">STATUS: NOT_IMPLEMENTED (HTTP 501)</div>
+        <div class="notice-badge" id="notice-status">REQUEST FAILED</div>
         <p id="notice-message" class="notice-message">
-          Backend component pending implementation.
+          The request could not be completed.
         </p>
         <div class="notice-explanation">
           <p>
-            As per project team guidelines, Ankur (Person 2) has completed the Flask backend,
-            API endpoints, JFF integration, and frontend GUI.
+            The game server could not complete this request. Check the message above and
+            confirm the server is available before trying again.
           </p>
-          <p id="notice-owner-guidance">
-            <strong>Next Step:</strong> Jiya (Person 1) or Pavithra (Person 3) must implement
-            their assigned Python module to enable live state movement.
+          <p>
+            If the issue persists, reload the page or restart the local server.
           </p>
         </div>
       </div>

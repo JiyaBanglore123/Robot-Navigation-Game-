@@ -1046,44 +1046,35 @@ class GameController {
   }
 
   // --------------------------------------------------------------------------
-  // Error Handling (HTTP 501 / 404 / 400 / 500)
+  // Error Handling (HTTP and network errors)
   // --------------------------------------------------------------------------
   handleApiError(err, actionContext) {
     console.error(`API Error during ${actionContext}:`, err);
 
     let message = 'An unexpected network error occurred.';
-    let isNotImplemented = false;
-
     if (err && err.data && err.data.error) {
       message = err.data.error;
     } else if (err && err.message) {
       message = err.message;
     }
 
-    if (err && err.status === 501) {
-      isNotImplemented = true;
-    }
-
-    // Display clean Retro Modal Notice
+    // Display a request-specific notice without implying team modules are pending.
     const noticeMsg = document.getElementById('notice-message');
-    const noticeGuidance = document.getElementById('notice-owner-guidance');
+    const noticeStatus = document.getElementById('notice-status');
 
     if (noticeMsg) {
       noticeMsg.textContent = `${actionContext} failed: ${message}`;
     }
 
-    if (noticeGuidance) {
-      if (message.includes('Jiya') || message.includes('DFA')) {
-        noticeGuidance.innerHTML = '<strong>Assigned to:</strong> Jiya (Person 1) must implement <code>automata/dfa_engine.py</code>.';
-      } else if (message.includes('Pavithra') || message.includes('Game-state') || message.includes('LEVELS')) {
-        noticeGuidance.innerHTML = '<strong>Assigned to:</strong> Pavithra (Person 3) must implement <code>game/grid_config.py</code> and <code>game/game_state.py</code>.';
-      } else {
-        noticeGuidance.innerHTML = '<strong>Note:</strong> Integrates with team members once their components are connected.';
-      }
+    if (noticeStatus) {
+      const status = err && err.status;
+      noticeStatus.textContent = status
+        ? `REQUEST FAILED (HTTP ${status})`
+        : 'NETWORK ERROR';
     }
 
     this.showModal('notice');
-    this.updateStatusBadge('NOT READY', 'status-blocked');
+    this.updateStatusBadge('REQUEST FAILED', 'status-blocked');
     this.setDialogue(`Notice: ${message}`);
   }
 }

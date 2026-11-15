@@ -1,14 +1,10 @@
 """
-Tests for Person 3 (Pavithra S): grid_config.py and game_state.py.
-
-Jiya's DFAEngine may still be pending, so these tests use a small stand-in
-engine that reads transitions straight from the real JFLAP file. GameState
-only depends on the process_movement() contract, so it works the same once
-the real engine lands.
+Tests for the integrated DFA engine, grid configuration, and game state.
 """
 
 import unittest
 
+from robot_navigation.automata.dfa_engine import DFAEngine
 from robot_navigation.automata.jff_parser import parse_dfa
 from robot_navigation.config.settings import JFF_PATH
 from robot_navigation.game.game_state import GameState
@@ -18,31 +14,6 @@ from robot_navigation.game.grid_config import (
     state_to_position,
     validate_level,
 )
-
-
-class JffBackedEngine:
-    """Minimal stand-in that follows the DFAEngine contract using the .jff file."""
-
-    def __init__(self, graph):
-        self.graph = graph
-        self.names = {n: d["name"] for n, d in graph.nodes(data=True)}
-        self.finals = {d["name"] for _, d in graph.nodes(data=True) if d["final"]}
-        self.table = {
-            (self.names[u], d["symbol"]): self.names[v]
-            for u, v, d in graph.edges(data=True)
-        }
-
-    def process_movement(self, current_state, movement):
-        if movement not in ("U", "D", "L", "R"):
-            return {"next_state": None, "status": "INVALID", "message": "bad symbol"}
-        nxt = self.table[(current_state, movement)]
-        if nxt == "Crash":
-            status = "CRASHED"
-        elif nxt in self.finals:
-            status = "WON"
-        else:
-            status = "PLAYING"
-        return {"next_state": nxt, "status": status, "message": ""}
 
 
 def load_graph():
@@ -88,7 +59,7 @@ class TestGridConfig(unittest.TestCase):
 class TestGameState(unittest.TestCase):
 
     def setUp(self):
-        self.game = GameState(LEVELS[1], JffBackedEngine(load_graph()))
+        self.game = GameState(LEVELS[1], DFAEngine(load_graph()))
 
     def play(self, symbols):
         state = None
@@ -167,7 +138,7 @@ class TestGameState(unittest.TestCase):
 
     def test_through_flask_api(self):
         from robot_navigation.app import GameManager, create_app
-        mgr = GameManager(dfa_engine_cls=JffBackedEngine)
+        mgr = GameManager()
         client = create_app(game_manager=mgr).test_client()
         r = client.post("/api/game/start", json={"level": 1})
         self.assertEqual(r.status_code, 200)
@@ -175,6 +146,7 @@ class TestGameState(unittest.TestCase):
         for d in ["RIGHT", "RIGHT", "RIGHT", "DOWN", "DOWN", "DOWN"]:
             r = client.post("/api/game/move", json={"direction": d})
         self.assertEqual(r.get_json()["state"]["status"], "WON")
+        self.assertEqual(r.get_json()["state"]["current_state"], "q33")
         r = client.post("/api/game/reset")
         self.assertEqual(r.get_json()["state"]["move_count"], 0)
 

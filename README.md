@@ -62,7 +62,8 @@ Robot-Navigation-Game/
 ├── INTEGRATION.md              # Team contracts, JSON specs, and module boundaries
 │
 ├── assets/
-│   └── robot_navigation_dfa.jff# JFLAP DFA specification XML (Jiya)
+│   └── robot_navigation_dfa.jff # Checked-in JFLAP DFA fallback
+├── robot_navigation_dfa.jff    # Project DFA used when present (Jiya)
 │
 ├── docs/
 │   └── robot_navigation_gui_design.md # GUI design guidelines
@@ -93,7 +94,9 @@ Robot-Navigation-Game/
 │
 └── tests/
     ├── __init__.py
-    └── test_api.py             # Automated API test suite with mocks
+    ├── test_api.py             # API validation and mock-boundary tests
+    ├── test_dfa_engine.py      # DFA transition and outcome tests
+    └── test_game_state.py      # Grid, game state, and real API integration tests
 ```
 
 ---
@@ -108,8 +111,8 @@ Robot-Navigation-Game/
 ### Setup
 Clone the repository:
 ```bash
-git clone https://github.com/YourRepo/Robot-Navigation-Game.git
-cd Robot-Navigation-Game
+git clone https://github.com/JiyaBanglore123/Robot-Navigation-Game-.git
+cd Robot-Navigation-Game-
 ```
 
 ---
@@ -212,7 +215,7 @@ Returns current session state.
 Resets the active game session to initial conditions.
 
 ### `GET /api/dfa/info`
-Returns static transition table, alphabet, initial state, and accepting states parsed from `assets/robot_navigation_dfa.jff` for visualization in the DFA Viewer.
+Returns static transition table, alphabet, initial state, and accepting states parsed from `robot_navigation_dfa.jff` (or the checked-in assets fallback) for visualization in the DFA Viewer.
 
 ---
 
@@ -220,55 +223,35 @@ Returns static transition table, alphabet, initial state, and accepting states p
 
 | Team Member | Role | Assigned Files | Status |
 |---|---|---|---|
-| **Jiya (Person 1)** | DFA Design & Transition Logic | `assets/robot_navigation_dfa.jff`, `automata/dfa_engine.py` | JFF: Completed<br>Engine: Pending |
-| **Ankur (Person 2)** | Backend, API, Frontend, Integration | `app.py`, `frontend/`, `config/`, `run.sh`, `run.bat`, `tests/` | **Completed** |
-| **Pavithra (Person 3)** | Grid Config & Game State Coordination | `game/grid_config.py`, `game/game_state.py` | Pending |
+| **Jiya (Person 1)** | DFA Design & Transition Logic | `robot_navigation_dfa.jff`, `src/robot_navigation/automata/dfa_engine.py` | **Completed** |
+| **Ankur (Person 2)** | Backend, API, Frontend, Integration | `src/robot_navigation/app.py`, `src/robot_navigation/web/`, `src/robot_navigation/config/`, `run.sh`, `run.bat`, `tests/` | **Completed** |
+| **Pavithra (Person 3)** | Grid Config & Game State Coordination | `src/robot_navigation/game/grid_config.py`, `src/robot_navigation/game/game_state.py` | **Completed** |
 
 ---
 
 ## 9. Integration Instructions
 
-To connect Jiya's and Pavithra's modules:
-1. **Jiya:**
-   - In `automata/dfa_engine.py`, implement `DFAEngine.__init__` and `DFAEngine.process_movement`.
-   - Return dictionary formatted as `TransitionResult(next_state=..., status=..., message=...)`.
-2. **Pavithra:**
-   - In `game/grid_config.py`, define `LEVELS[1] = {'rows': 4, 'cols': 4, 'start': 'q00', 'goal': 'q33', 'obstacles': ['q11', 'q22', 'q31']}`.
-   - In `game/game_state.py`, implement `GameState.__init__`, `move`, `reset`, and `get_state`.
-3. **Run:**
-   - Launch `./run.sh` or `run.bat`. The frontend immediately communicates with their completed logic without backend code changes.
+The DFA engine, configured level, and game-state manager are integrated with the Flask
+API. Start the server using `run.bat` on Windows or `./run.sh` on Linux, open
+`http://127.0.0.1:5000`, and start Level 1 to play.
 
-For full contract specifications, consult [INTEGRATION.md](file:///run/media/ankur/Data/Ankur/Github/Robot-Navigation-Game/INTEGRATION.md).
+For full contract specifications, consult [INTEGRATION.md](INTEGRATION.md).
 
 ---
 
-## 10. Current Implementation Limitations
+## 10. Implementation Status
 
-> [!WARNING]
-> The full interactive robot movement requires Jiya's `DFAEngine` and Pavithra's `GameState` implementations.
-> Until these are implemented:
-> - The frontend boots up, loads the menu, and displays the **DFA Transition Table and Automaton Info** via `/api/dfa/info`.
-> - Attempting to start Level 1 or move will display a friendly **Team Integration Notice (HTTP 501 / 404)** indicating that Person 1 or Person 3's module is pending.
-
----
-
-## 11. Remaining Tasks for Jiya (Person 1)
-
-- [ ] Construct the transition lookup dictionary from the parsed NetworkX MultiDiGraph in `DFAEngine.__init__`.
-- [ ] Implement `DFAEngine.process_movement(current_state, movement)`:
-  - [ ] Validate movement $\in \{U, D, L, R\}$.
-  - [ ] Look up destination state.
-  - [ ] Classify outcome (`PLAYING`, `CRASHED`, `WON`, `INVALID`).
-- [ ] Add automata-specific test cases for transition correctness and crash detection.
+The assigned DFA, game-state, and API work is implemented. The following checklist
+records Jiya's completed deliverables:
+- [x] Construct the transition lookup dictionary from the parsed NetworkX MultiDiGraph in `DFAEngine.__init__`.
+- [x] Implement `DFAEngine.process_movement(current_state, movement)` and classify `PLAYING`, `CRASHED`, `WON`, and `INVALID` outcomes.
+- [x] Add automata-specific test cases for transition correctness, accepting states, and crash detection.
 
 ---
 
-## 12. Running Automated Tests
+## 11. Running Automated Tests
 
-Run Ankur's unit and API test suite:
+Run the unit, automata, game-state, and API test suites:
 ```bash
-python3 -m unittest discover -s tests -v
-# or
-pytest tests/
+python -m pytest tests/ -v
 ```
-All 11 tests execute against mocked interfaces to ensure contract compliance and error handling integrity.

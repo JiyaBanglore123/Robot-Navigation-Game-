@@ -9,10 +9,13 @@ from pathlib import Path
 # Base project root directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
-# Path to JFLAP DFA XML file
+# Prefer a project-root DFA supplied by the user; keep the checked-in asset
+# as a fallback for clean clones.
+_ROOT_DFA_PATH = BASE_DIR / "robot_navigation_dfa.jff"
+_ASSET_DFA_PATH = BASE_DIR / "assets" / "robot_navigation_dfa.jff"
 JFF_PATH = os.environ.get(
     "DFA_JFF_PATH",
-    str(BASE_DIR / "assets" / "robot_navigation_dfa.jff")
+    str(_ROOT_DFA_PATH if _ROOT_DFA_PATH.exists() else _ASSET_DFA_PATH)
 )
 
 # Network settings
