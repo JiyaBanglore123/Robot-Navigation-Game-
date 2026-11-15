@@ -6,7 +6,6 @@ import unittest
 
 from robot_navigation.automata.dfa_engine import DFAEngine
 from robot_navigation.automata.jff_parser import parse_dfa
-from robot_navigation.config.settings import JFF_PATH
 from robot_navigation.game.game_state import GameState
 from robot_navigation.game.grid_config import (
     LEVELS,
@@ -17,17 +16,21 @@ from robot_navigation.game.grid_config import (
 
 
 def load_graph():
-    with open(JFF_PATH, encoding="utf-8") as f:
-        return parse_dfa(f.read())
+    with open(LEVELS[1]["jff_path"], encoding="utf-8") as f:
+        graph = parse_dfa(f.read())
+    graph.graph["trap_state"] = LEVELS[1]["trap_state"]
+    return graph
 
 
 class TestGridConfig(unittest.TestCase):
 
     def test_level1_matches_contract(self):
-        self.assertEqual(LEVELS[1], {
-            "rows": 4, "cols": 4, "start": "q00", "goal": "q33",
-            "obstacles": ["q11", "q22", "q31"],
-        })
+        self.assertEqual(LEVELS[1]["rows"], 4)
+        self.assertEqual(LEVELS[1]["cols"], 4)
+        self.assertEqual(LEVELS[1]["start"], "q00")
+        self.assertEqual(LEVELS[1]["goal"], "q33")
+        self.assertEqual(LEVELS[1]["obstacles"], ["q11", "q22", "q31"])
+        self.assertEqual(LEVELS[1]["title"], "JFLAP DFA")
 
     def test_level_cells_match_dfa_states(self):
         graph = load_graph()
@@ -50,10 +53,11 @@ class TestGridConfig(unittest.TestCase):
         self.assertEqual(position_to_state(3, 0), "q30")
 
     def test_validate_rejects_bad_level(self):
+        config = dict(LEVELS[1])
         with self.assertRaises(ValueError):
-            validate_level({"rows": 4, "cols": 4, "start": "q00", "goal": "q00", "obstacles": []})
+            validate_level({**config, "goal": "q00"})
         with self.assertRaises(ValueError):
-            validate_level({"rows": 4, "cols": 4, "start": "q00", "goal": "q33", "obstacles": ["q44"]})
+            validate_level({**config, "obstacles": ["q44"]})
 
 
 class TestGameState(unittest.TestCase):

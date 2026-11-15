@@ -46,6 +46,12 @@ The system uses a modular 3-tier architecture with clear separation of concerns:
 └───────────────────────────┘└───────────────────────────┘
 ```
 
+Add each playable automaton to `assets/dfa/` and add a `levels` entry in
+`assets/state_config.yaml` with its JFF filename, start/end states, grid size,
+obstacle count and state names, trap state, title, and description. The level
+selector, grid, and DFA viewer are generated from that configuration and the
+selected JFLAP file.
+
 ---
 
 ## 3. Directory Structure
@@ -62,8 +68,9 @@ Robot-Navigation-Game/
 ├── INTEGRATION.md              # Team contracts, JSON specs, and module boundaries
 │
 ├── assets/
-│   └── robot_navigation_dfa.jff # Checked-in JFLAP DFA fallback
-├── robot_navigation_dfa.jff    # Project DFA used when present (Jiya)
+│   ├── state_config.yaml       # Level metadata and per-level JFLAP files
+│   └── dfa/
+│       └── robot_navigation_dfa.jff
 │
 ├── docs/
 │   └── robot_navigation_gui_design.md # GUI design guidelines
@@ -215,7 +222,7 @@ Returns current session state.
 Resets the active game session to initial conditions.
 
 ### `GET /api/dfa/info`
-Returns static transition table, alphabet, initial state, and accepting states parsed from `robot_navigation_dfa.jff` (or the checked-in assets fallback) for visualization in the DFA Viewer.
+Returns the selected level's transition table, alphabet, initial state, and accepting states parsed from its JFLAP file. Levels and their state/grid metadata are configured in `assets/state_config.yaml`; add a level entry there to make another JFF available in the selector.
 
 ---
 

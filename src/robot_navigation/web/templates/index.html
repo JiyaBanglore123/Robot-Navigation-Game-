@@ -135,10 +135,10 @@
             Each safe grid cell directly maps to a distinct DFA state in <strong>Q</strong>:
           </p>
           <ul class="concepts-list">
-            <li><strong>q00</strong>: Starting state (Initial state &rarr; <strong>q0</strong>)</li>
-            <li><strong>qrc</strong>: Row <code>r</code>, Column <code>c</code> coordinate state</li>
-            <li><strong>q33</strong>: Goal destination (Accepting / Final state &in; <strong>F</strong>)</li>
-            <li><strong>Crash</strong>: Obstacle collision (Trap / Dead state)</li>
+            <li>The configured start state is the initial state.</li>
+            <li>Each traversable cell corresponds to a DFA state.</li>
+            <li>The configured end state is an accepting state.</li>
+            <li>Obstacle transitions lead to a trap state.</li>
           </ul>
         </div>
 
@@ -160,7 +160,7 @@
             </div>
             <div class="rule-card">
               <span class="rule-icon danger">&times;</span>
-              <strong>Obstacle:</strong> Transitions to <strong>Crash</strong> trap state (STRING REJECTED).
+              <strong>Obstacle:</strong> Transitions to the trap state (STRING REJECTED).
             </div>
           </div>
         </div>
@@ -190,48 +190,6 @@
       </div>
 
       <div class="level-cards-grid">
-        <!-- Level 1 Card -->
-        <div class="level-card" data-level="1">
-          <div class="level-badge active-badge">JFLAP DFA</div>
-          <h3 class="level-name">LEVEL 1: WARM-UP</h3>
-          <div class="level-meta">
-            <span>GRID: 4&times;4</span> &bull; 
-            <span>OBSTACLES: 3</span>
-          </div>
-          <p class="level-desc">
-            The primary DFA defined in <code>robot_navigation_dfa.jff</code>.
-            Navigate safely from q00 to q33 without triggering the Crash state.
-          </p>
-          <button class="retro-btn btn-play-level">START LEVEL 1 ▶</button>
-        </div>
-
-        <!-- Level 2 Card -->
-        <div class="level-card locked" data-level="2">
-          <div class="level-badge">EXPANSION</div>
-          <h3 class="level-name">LEVEL 2: MAZE RUNNER</h3>
-          <div class="level-meta">
-            <span>GRID: 6&times;6</span> &bull; 
-            <span>OBSTACLES: 8</span>
-          </div>
-          <p class="level-desc">
-            Larger grid state-space requiring strategic path planning and detour logic.
-          </p>
-          <button class="retro-btn btn-play-level" disabled>LOCKED 🔒</button>
-        </div>
-
-        <!-- Level 3 Card -->
-        <div class="level-card locked" data-level="3">
-          <div class="level-badge">CHALLENGE</div>
-          <h3 class="level-name">LEVEL 3: NIGHTMARE</h3>
-          <div class="level-meta">
-            <span>GRID: 8&times;8</span> &bull; 
-            <span>OBSTACLES: 16</span>
-          </div>
-          <p class="level-desc">
-            Complex labyrinth with dense obstacle clusters and narrow deterministic paths.
-          </p>
-          <button class="retro-btn btn-play-level" disabled>LOCKED 🔒</button>
-        </div>
       </div>
     </div>
   </section>
@@ -243,7 +201,7 @@
     <!-- Game Header Bar -->
     <header class="game-header">
       <div class="header-left">
-        <span class="game-level-tag" id="game-level-tag">LEVEL 1: WARM-UP</span>
+        <span class="game-level-tag" id="game-level-tag"></span>
         <span class="game-timer" id="game-timer">⏱ 00:00</span>
       </div>
       <div class="header-center">
@@ -262,19 +220,9 @@
       <!-- Left: Visual Grid -->
       <div class="grid-section">
         <div class="grid-frame-outer">
-          <div class="grid-coordinate-bar-top" id="coord-cols">
-            <span class="coord-label">C0</span>
-            <span class="coord-label">C1</span>
-            <span class="coord-label">C2</span>
-            <span class="coord-label">C3</span>
-          </div>
+          <div class="grid-coordinate-bar-top" id="coord-cols"></div>
           <div class="grid-with-rows">
-            <div class="grid-coordinate-bar-left" id="coord-rows">
-              <span class="coord-label">R0</span>
-              <span class="coord-label">R1</span>
-              <span class="coord-label">R2</span>
-              <span class="coord-label">R3</span>
-            </div>
+            <div class="grid-coordinate-bar-left" id="coord-rows"></div>
             
             <!-- Grid Container -->
             <div class="grid-wrapper">
@@ -298,8 +246,8 @@
           </div>
 
           <div class="legend-box">
-            <div class="legend-item"><span class="legend-swatch swatch-start">S</span> Start (q00)</div>
-            <div class="legend-item"><span class="legend-swatch swatch-goal">⚑</span> Goal (q33)</div>
+            <div class="legend-item"><span class="legend-swatch swatch-start">S</span> Start</div>
+            <div class="legend-item"><span class="legend-swatch swatch-goal">⚑</span> Goal</div>
             <div class="legend-item"><span class="legend-swatch swatch-obstacle">✖</span> Obstacle</div>
             <div class="legend-item"><span class="legend-swatch swatch-robot">●</span> Robot Dee</div>
           </div>
@@ -323,11 +271,11 @@
           <div class="telemetry-table">
             <div class="telemetry-row">
               <span class="t-label">Current State:</span>
-              <span class="t-value highlight" id="stat-state">q00</span>
+              <span class="t-value highlight" id="stat-state"></span>
             </div>
             <div class="telemetry-row">
               <span class="t-label">Grid Position:</span>
-              <span class="t-value" id="stat-position">(0, 0)</span>
+              <span class="t-value" id="stat-position"></span>
             </div>
             <div class="telemetry-row">
               <span class="t-label">Last Move:</span>
@@ -374,7 +322,7 @@
         <div class="result-details">
           <div class="res-row">
             <span>Final State:</span>
-            <strong id="result-final-state">q33 (accepting)</strong>
+            <strong id="result-final-state"></strong>
           </div>
           <div class="res-row">
             <span>Input String:</span>
@@ -411,20 +359,12 @@
 
       <div class="tab-content" id="tab-table">
         <p class="tab-hint">
-          Live transition lookup table parsed directly from <code>robot_navigation_dfa.jff</code>.
+          Live transition lookup table parsed directly from the selected JFLAP file.
           The current active state is highlighted in cyan.
         </p>
         <div class="table-scroll-wrap">
           <table class="dfa-table" id="dfa-transition-table">
-            <thead>
-              <tr>
-                <th>State (q)</th>
-                <th>U</th>
-                <th>D</th>
-                <th>L</th>
-                <th>R</th>
-              </tr>
-            </thead>
+            <thead><tr id="dfa-table-header"></tr></thead>
             <tbody id="dfa-table-body">
               <!-- Populated dynamically via /api/dfa/info -->
             </tbody>
@@ -441,19 +381,19 @@
           </div>
           <div class="tuple-item">
             <strong>&Sigma; (Alphabet):</strong>
-            <span>{ U, D, L, R }</span>
+            <span id="tuple-alphabet"></span>
           </div>
           <div class="tuple-item">
             <strong>q<sub>0</sub> (Start State):</strong>
-            <span id="tuple-start">q00</span>
+            <span id="tuple-start"></span>
           </div>
           <div class="tuple-item">
             <strong>F (Accepting States):</strong>
-            <span id="tuple-final">{ q33 }</span>
+            <span id="tuple-final"></span>
           </div>
           <div class="tuple-item">
-            <strong>Trap / Crash State:</strong>
-            <span class="danger-text">Crash (Sink / Rejecting state)</span>
+            <strong>Trap State:</strong>
+            <span class="danger-text" id="tuple-trap"></span>
           </div>
         </div>
       </div>
@@ -462,7 +402,7 @@
         <div class="string-tester-box">
           <p>Test an input string sequentially against the loaded DFA:</p>
           <div class="tester-input-row">
-            <input type="text" id="tester-string-input" placeholder="e.g. RRRDDD" class="retro-input" maxlength="40">
+            <input type="text" id="tester-string-input" placeholder="Enter a string" class="retro-input" maxlength="40">
             <button id="btn-run-tester" class="retro-btn">TEST STRING</button>
           </div>
           <div id="tester-output" class="tester-output">

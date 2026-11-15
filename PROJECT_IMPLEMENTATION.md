@@ -80,7 +80,7 @@ positions, obstacles, move count, input string, path, crash position, and
 terminal-state indicator.
 
 The JFLAP file at the project root (`robot_navigation_dfa.jff`) is preferred when
-present. `assets/robot_navigation_dfa.jff` is the fallback. `DFA_JFF_PATH` can
+present. `assets/dfa/robot_navigation_dfa.jff` is the fallback. `DFA_JFF_PATH` can
 override both paths.
 
 ## Browser interface

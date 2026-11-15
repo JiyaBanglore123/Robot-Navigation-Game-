@@ -1,0 +1,15 @@
+levels:
+  1:
+    file_name: robot_navigation_dfa.jff
+    start_state: q00
+    end_state: q33
+    num_grid_rows: 4
+    num_grid_cols: 4
+    num_obstacles: 3
+    obstacle_states:
+      - q11
+      - q22
+      - q31
+    trap_state: Crash
+    title: JFLAP DFA
+    description: Navigate from the configured start state to the accepting state while avoiding obstacles.
