@@ -36,7 +36,7 @@ The project architecture strictly decouples the three core modules so that each 
                 │                           └───────────────────────────────┘
 ┌───────────────┴───────────────┐
 │       JFLAP DFA Parser        │
-│  assets/robot_navigation_dfa  │
+│  robot_navigation_dfa.jff     │
 │  automata/jff_parser.py       │
 │  (Shared / Ankur integrated)  │
 └───────────────────────────────┘
@@ -48,7 +48,9 @@ The project architecture strictly decouples the three core modules so that each 
 
 ### 2.1 Person 1 — Jiya (Automata Transition Engine)
 
-Module file: `automata/dfa_engine.py`
+Module file: `src/robot_navigation/automata/dfa_engine.py`
+
+Status: implemented and covered by `tests/test_dfa_engine.py`.
 
 #### Interface Contract:
 ```python
@@ -95,7 +97,8 @@ class DFAEngine:
 
 ### 2.2 Person 3 — Pavithra (Grid & Game State Coordinator)
 
-Module files: `game/grid_config.py` and `game/game_state.py`
+Module files: `src/robot_navigation/game/grid_config.py` and
+`src/robot_navigation/game/game_state.py`
 
 #### Grid Configuration Contract (`game/grid_config.py`):
 ```python
@@ -109,7 +112,7 @@ class LevelConfig(TypedDict):
     obstacles: list[str]# Obstacle states/positions, e.g. ['q11', 'q22', 'q31']
 
 LEVELS: dict[int, LevelConfig] = {
-    # Pavithra must define Level 1 (4x4) and any extra levels here
+    # Level 1 (4x4) and the configured obstacles are implemented.
 }
 ```
 
@@ -175,12 +178,12 @@ class GameState:
 ### 2.3 Person 2 — Ankur (Flask Backend, REST API, GUI & Integration)
 
 Implemented files:
-- `app.py`: Flask application factory, REST endpoints, `GameManager` session lifecycle.
-- `automata/jff_parser.py`: JFLAP parser adapter and graph metadata extractor.
-- `config/settings.py`: Configurable directions, file paths, host, and port.
-- `frontend/templates/index.html`: Responsive single-page retro terminal UI.
-- `frontend/static/css/style.css`: Theme styling, animations (CRT glitch, slide, bump, crash).
-- `frontend/static/js/game.js`: Centralized API layer, Web Audio synthesizer, keyboard handler.
+- `src/robot_navigation/app.py`: Flask application factory, REST endpoints, `GameManager` session lifecycle.
+- `src/robot_navigation/automata/jff_parser.py`: JFLAP parser adapter and graph metadata extractor.
+- `src/robot_navigation/config/settings.py`: Configurable directions, file paths, host, and port.
+- `src/robot_navigation/web/templates/index.html`: Responsive single-page retro terminal UI.
+- `src/robot_navigation/web/static/css/style.css`: Theme styling, animations (CRT glitch, slide, bump, crash).
+- `src/robot_navigation/web/static/js/game.js`: Centralized API layer, Web Audio synthesizer, keyboard handler.
 - `run.sh` / `run.bat`: Cross-platform startup scripts.
 - `tests/test_api.py`: Automated Flask API test suite using dependency injection mocks.
 
@@ -232,7 +235,7 @@ All endpoints use standard JSON payloads and return structured responses.
 - **Error Responses:**
   - `400 Bad Request`: Missing `level` or invalid integer.
   - `404 Not Found`: Level not defined in `LEVELS`.
-  - `501 Not Implemented`: `DFAEngine` or `GameState` raised `NotImplementedError`.
+  - `501 Not Implemented`: an unavailable application component raised `NotImplementedError`.
 
 ---
 
@@ -260,7 +263,7 @@ All endpoints use standard JSON payloads and return structured responses.
   ```
 - **Error Responses:**
   - `400 Bad Request`: Missing `direction`, invalid direction string, or no active session.
-  - `501 Not Implemented`: `GameState.move()` raised `NotImplementedError`.
+  - `501 Not Implemented`: an unavailable movement component raised `NotImplementedError`.
 
 ---
 
@@ -280,7 +283,7 @@ All endpoints use standard JSON payloads and return structured responses.
   ```
 - **Error Responses:**
   - `400 Bad Request`: No active session started.
-  - `501 Not Implemented`: `GameState.get_state()` raised `NotImplementedError`.
+  - `501 Not Implemented`: an unavailable state component raised `NotImplementedError`.
 
 ---
 
@@ -343,14 +346,12 @@ All endpoints use standard JSON payloads and return structured responses.
 
 ---
 
-## 6. How Jiya and Pavithra Connect Their Code
+## 6. Integration Status and Verification
 
-1. **Jiya:**
-   - Open `automata/dfa_engine.py`.
-   - Replace the `NotImplementedError` in `__init__` and `process_movement`.
-   - Ensure `process_movement` returns `TransitionResult(next_state=..., status=..., message=...)`.
-2. **Pavithra:**
-   - Open `game/grid_config.py` and populate `LEVELS[1]` with `{'rows': 4, 'cols': 4, 'start': 'q00', 'goal': 'q33', 'obstacles': ['q11', 'q22', 'q31']}`.
-   - Open `game/game_state.py` and implement `__init__`, `move`, `reset`, and `get_state`.
-3. **Verification:**
-   - Once implemented, running `./run.sh` or `run.bat` will immediately enable full live interactive gameplay through the browser GUI with zero modifications required in Ankur's code!
+Jiya's DFA engine and Pavithra's grid/game-state modules are implemented. The Flask
+`GameManager` loads the JFLAP file, injects its parsed graph into `DFAEngine`, and
+routes movements through `GameState`. The root-level `robot_navigation_dfa.jff` is
+preferred when present; `assets/robot_navigation_dfa.jff` is the fallback.
+
+Run `python -m pytest -q` to validate unit and integration behavior, then launch the
+application with `run.bat` on Windows or `./run.sh` on Linux.

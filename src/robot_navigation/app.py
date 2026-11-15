@@ -94,10 +94,10 @@ class GameManager:
         if self.parsed_graph is None:
             self.load_automaton()
 
-        # Instantiate Jiya's DFAEngine (will raise NotImplementedError if not implemented)
+        # Build the DFA transition engine from the parsed JFLAP graph.
         self.dfa_engine = self.dfa_engine_cls(self.parsed_graph)
 
-        # Instantiate Pavithra's GameState (will raise NotImplementedError if not implemented)
+        # Start the configured level with the shared DFA engine.
         self.current_game_state = self.game_state_cls(level_config, self.dfa_engine)
         self.current_level = level
 
@@ -178,7 +178,7 @@ def create_app(
     # --------------------------------------------------------------------------
     @app.errorhandler(NotImplementedError)
     def handle_not_implemented(e):
-        """Catches pending module implementations from Jiya or Pavithra."""
+        """Return a structured response when a component is unavailable."""
         return jsonify({
             "success": False,
             "error": str(e),

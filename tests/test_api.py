@@ -76,7 +76,7 @@ class MockGameState(GameState):
 class MockFailingMoveGameState(MockGameState):
     """GameState whose move method raises NotImplementedError."""
     def move(self, direction: str) -> Dict[str, Any]:
-        raise NotImplementedError("Game movement coordination must be implemented by Pavithra.")
+        raise NotImplementedError("Simulated unavailable game movement.")
 
 
 # ==============================================================================
@@ -213,23 +213,17 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(res_reset.status_code, 400)
         self.assertEqual(res_reset.get_json()["status"], "NO_ACTIVE_SESSION")
 
-    # 9. Real pending modules raise NotImplementedError -> 501
-    def test_unimplemented_modules_return_501(self):
-        """
-        Test that when Jiya's DFAEngine or Pavithra's GameState are called
-        without implementation, the Flask API returns HTTP 501 Not Implemented.
-        """
-        # Manager using real boilerplate DFAEngine (which raises NotImplementedError)
-        unimpl_dfa_mgr = GameManager(
+    # 9. The implemented DFA engine starts a game successfully.
+    def test_real_dfa_engine_starts_game(self):
+        manager = GameManager(
             dfa_engine_cls=DFAEngine,
             game_state_cls=MockGameState,
             levels=self.mock_levels
         )
-        client1 = create_app(game_manager=unimpl_dfa_mgr).test_client()
-        res1 = client1.post("/api/game/start", json={"level": 1})
-        self.assertEqual(res1.status_code, 501)
-        self.assertEqual(res1.get_json()["status"], "NOT_IMPLEMENTED")
-        self.assertIn("Jiya", res1.get_json()["error"])
+        client = create_app(game_manager=manager).test_client()
+        response = client.post("/api/game/start", json={"level": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["state"]["current_state"], "q00")
 
         # Pavithra's GameState is now implemented, so starting a game succeeds
         impl_state_mgr = GameManager(
