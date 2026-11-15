@@ -70,7 +70,9 @@ Robot-Navigation-Game/
 ├── assets/
 │   ├── state_config.yaml       # Level metadata and per-level JFLAP files
 │   └── dfa/
-│       └── robot_navigation_dfa.jff
+│       ├── level_1.jff
+│       ├── level_2.jff
+│       └── level_3.jff
 │
 ├── docs/
 │   └── robot_navigation_gui_design.md # GUI design guidelines

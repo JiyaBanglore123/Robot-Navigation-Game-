@@ -1,6 +1,6 @@
 levels:
   1:
-    file_name: robot_navigation_dfa.jff
+    file_name: level_1.jff
     start_state: q00
     end_state: q33
     num_grid_rows: 4
@@ -13,3 +13,49 @@ levels:
     trap_state: Crash
     title: JFLAP DFA
     description: Navigate from the configured start state to the accepting state while avoiding obstacles.
+  2:
+    file_name: level_2.jff
+    start_state: q00
+    end_state: q55
+    num_grid_rows: 6
+    num_grid_cols: 6
+    num_obstacles: 8
+    obstacle_states:
+      - q11
+      - q13
+      - q22
+      - q24
+      - q31
+      - q33
+      - q42
+      - q43
+    trap_state: Crash
+    title: Mid-difficulty
+    description: Navigate the larger 6×6 state grid, avoid eight obstacles, and reach the accepting state.
+  3:
+    file_name: level_3.jff
+    start_state: q00
+    end_state: q77
+    num_grid_rows: 8
+    num_grid_cols: 8
+    num_obstacles: 16
+    obstacle_states:
+      - q10
+      - q11
+      - q12
+      - q13
+      - q14
+      - q15
+      - q30
+      - q31
+      - q32
+      - q33
+      - q34
+      - q35
+      - q42
+      - q44
+      - q46
+      - q60
+    trap_state: Crash
+    title: High difficulty
+    description: Find a route through the 8×8 state grid, navigate around sixteen obstacles, and reach the accepting state.

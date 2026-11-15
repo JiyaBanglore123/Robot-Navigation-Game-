@@ -16,9 +16,13 @@ from robot_navigation.game.grid_config import (
 
 
 def load_graph():
-    with open(LEVELS[1]["jff_path"], encoding="utf-8") as f:
+    return load_level_graph(LEVELS[1])
+
+
+def load_level_graph(config):
+    with open(config["jff_path"], encoding="utf-8") as f:
         graph = parse_dfa(f.read())
-    graph.graph["trap_state"] = LEVELS[1]["trap_state"]
+    graph.graph["trap_state"] = config["trap_state"]
     return graph
 
 
@@ -33,12 +37,17 @@ class TestGridConfig(unittest.TestCase):
         self.assertEqual(LEVELS[1]["title"], "JFLAP DFA")
 
     def test_level_cells_match_dfa_states(self):
-        graph = load_graph()
-        dfa_states = {d["name"] for _, d in graph.nodes(data=True)} - {"Crash"}
         for cfg in LEVELS.values():
-            cells = {position_to_state(r, c) for r in range(cfg["rows"]) for c in range(cfg["cols"])}
-            free_cells = cells - set(cfg["obstacles"])
-            self.assertEqual(free_cells, dfa_states)
+            with self.subTest(level=cfg["level"]):
+                graph = load_level_graph(cfg)
+                dfa_states = {d["name"] for _, d in graph.nodes(data=True)} - {cfg["trap_state"]}
+                cells = {
+                    position_to_state(r, c)
+                    for r in range(cfg["rows"])
+                    for c in range(cfg["cols"])
+                }
+                free_cells = cells - set(cfg["obstacles"])
+                self.assertEqual(free_cells, dfa_states)
 
     def test_start_and_goal_match_dfa(self):
         graph = load_graph()
@@ -46,6 +55,28 @@ class TestGridConfig(unittest.TestCase):
         finals = {d["name"] for _, d in graph.nodes(data=True) if d["final"]}
         self.assertEqual(LEVELS[1]["start"], initial)
         self.assertIn(LEVELS[1]["goal"], finals)
+
+    def test_all_configured_levels_have_valid_playable_automata(self):
+        for config in LEVELS.values():
+            with self.subTest(level=config["level"]):
+                graph = load_level_graph(config)
+                graph.graph["trap_state"] = config["trap_state"]
+                engine = DFAEngine(graph)
+                self.assertEqual(engine.initial_state, config["start"])
+                self.assertIn(config["goal"], engine.accepting_states)
+
+                pending = [config["start"]]
+                visited = set(pending)
+                while pending:
+                    state = pending.pop()
+                    for symbol in engine.alphabet:
+                        result = engine.process_movement(state, symbol)
+                        next_state = result["next_state"]
+                        self.assertIsNotNone(next_state)
+                        if next_state != config["trap_state"] and next_state not in visited:
+                            visited.add(next_state)
+                            pending.append(next_state)
+                self.assertIn(config["goal"], visited)
 
     def test_position_conversions(self):
         self.assertEqual(state_to_position("q12"), (1, 2))
@@ -153,6 +184,19 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(r.get_json()["state"]["current_state"], "q33")
         r = client.post("/api/game/reset")
         self.assertEqual(r.get_json()["state"]["move_count"], 0)
+
+    def test_manager_starts_every_configured_level(self):
+        from robot_navigation.app import GameManager
+
+        manager = GameManager()
+        for level, config in LEVELS.items():
+            with self.subTest(level=level):
+                state = manager.start_game(level)
+                self.assertEqual((state["rows"], state["cols"]), (config["rows"], config["cols"]))
+                self.assertEqual(state["current_state"], config["start"])
+                self.assertEqual(state["goal_state"], config["goal"])
+                self.assertEqual(state["obstacle_states"], config["obstacles"])
+                self.assertEqual(manager.get_dfa_info()["trap_state"], config["trap_state"])
 
 
 if __name__ == "__main__":
