@@ -1,6 +1,5 @@
 /**
  * DFA-9 Robot Navigation Game — Frontend Controller & API Client
- * Author: Ankur (Person 2)
  *
  * Implements:
  * - Centralized Fetch API communication layer
@@ -20,7 +19,7 @@ function escapeHtml(value) {
 }
 
 // ============================================================================
-// 1. CENTRALIZED API LAYER (ANKUR)
+// 1. CENTRALIZED API LAYER
 // ============================================================================
 
 const api = {
@@ -35,10 +34,22 @@ const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ level })
     });
-    const data = await response.json();
-    if (!response.ok) {
-      throw { status: response.status, data };
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      data = {};
     }
+
+    if (!response.ok || data?.success === false) {
+      throw { status: response.status, data: data || { error: 'The server returned an empty response.' } };
+    }
+
+    if (!data || typeof data !== 'object') {
+      throw { status: response.status, data: { error: 'The server returned an invalid game payload.' } };
+    }
+
     return data;
   },
 
@@ -269,7 +280,7 @@ function getRandomDeeLine(category) {
 }
 
 // ============================================================================
-// 4. CLIENT GAME CONTROLLER (ANKUR)
+// 4. CLIENT GAME CONTROLLER
 // ============================================================================
 
 class GameController {
@@ -617,10 +628,21 @@ class GameController {
 
     try {
       const result = await api.startGame(level);
-      document.getElementById('game-level-tag').textContent = result.level_info.title;
-      this.dfaData = result.dfa_info;
-      this.populateDfaTable(result.dfa_info);
-      this.populateDfaTuple(result.dfa_info);
+      const levelInfo = result?.level_info || result?.level_info || { title: `Level ${level}` };
+      const dfaInfo = result?.dfa_info || this.dfaData;
+
+      if (!result || !result.state) {
+        throw new Error('The server did not return a valid game state.');
+      }
+
+      document.getElementById('game-level-tag').textContent = levelInfo?.title || `Level ${level}`;
+
+      if (dfaInfo) {
+        this.dfaData = dfaInfo;
+        this.populateDfaTable(dfaInfo);
+        this.populateDfaTuple(dfaInfo);
+      }
+
       this.applyGameState(result.state);
       this.startTimer();
     } catch (err) {
