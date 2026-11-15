@@ -1,0 +1,71 @@
+levels:
+  1:
+    file_name: level_1.jff
+    start_state: q00
+    end_state: q33
+    num_grid_rows: 4
+    num_grid_cols: 4
+    num_obstacles: 3
+    obstacle_states:
+    - q11
+    - q22
+    - q31
+    trap_state: Crash
+    title: JFLAP DFA
+    description: Navigate from the configured start state to the accepting state while
+      avoiding obstacles.
+  2:
+    file_name: level_2.jff
+    start_state: q00
+    end_state: q55
+    num_grid_rows: 6
+    num_grid_cols: 6
+    num_obstacles: 8
+    obstacle_states:
+    - q11
+    - q13
+    - q22
+    - q24
+    - q31
+    - q33
+    - q42
+    - q43
+    trap_state: Crash
+    title: Mid-difficulty
+    description: Navigate the larger 6×6 state grid, avoid eight obstacles, and reach
+      the accepting state.
+  3:
+    file_name: level_3.jff
+    start_state: q00
+    end_state: q77
+    num_grid_rows: 8
+    num_grid_cols: 8
+    num_obstacles: 23
+    obstacle_states:
+    - q03
+    - q06
+    - q16
+    - q20
+    - q21
+    - q22
+    - q23
+    - q33
+    - q36
+    - q41
+    - q45
+    - q46
+    - q47
+    - q51
+    - q52
+    - q54
+    - q55
+    - q56
+    - q62
+    - q63
+    - q64
+    - q65
+    - q67
+    trap_state: Crash
+    title: Expert difficulty
+    description: Navigate the 8×8 maze, avoid 23 obstacles and several dead ends,
+      and reach the accepting state.

@@ -2,12 +2,14 @@ import unittest
 
 from robot_navigation.automata.dfa_engine import DFAEngine
 from robot_navigation.automata.jff_parser import parse_dfa
-from robot_navigation.config.settings import JFF_PATH
+from robot_navigation.game.grid_config import LEVELS
 
 
 def load_graph():
-    with open(JFF_PATH, encoding="utf-8") as jff_file:
-        return parse_dfa(jff_file.read())
+    with open(LEVELS[1]["jff_path"], encoding="utf-8") as jff_file:
+        graph = parse_dfa(jff_file.read())
+    graph.graph["trap_state"] = LEVELS[1]["trap_state"]
+    return graph
 
 
 class TestDFAEngine(unittest.TestCase):

@@ -350,8 +350,9 @@ All endpoints use standard JSON payloads and return structured responses.
 
 Jiya's DFA engine and Pavithra's grid/game-state modules are implemented. The Flask
 `GameManager` loads the JFLAP file, injects its parsed graph into `DFAEngine`, and
-routes movements through `GameState`. The root-level `robot_navigation_dfa.jff` is
-preferred when present; `assets/robot_navigation_dfa.jff` is the fallback.
+routes movements through `GameState`. The root-level `level_1
+.jff` is
+preferred when present; `assets/dfa/level_1.jff` is the fallback.
 
 Run `python -m pytest -q` to validate unit and integration behavior, then launch the
 application with `run.bat` on Windows or `./run.sh` on Linux.

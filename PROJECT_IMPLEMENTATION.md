@@ -8,9 +8,12 @@ is a state transition. The project includes a Flask API, a browser interface, a
 JFLAP DFA parser and execution engine, a grid/game-state manager, and automated
 tests.
 
-The current Level 1 board is a 4 × 4 grid. The robot starts at `q00`, the goal is
-the accepting state `q33`, and the obstacle cells are `q11`, `q22`, and `q31`.
-Moving into an obstacle transitions to the `Crash` sink state.
+The project ships with three configured levels in `assets/state_config.yaml`: Level
+1 is a 4 × 4 board from `q00` to `q33`, Level 2 is a 6 × 6 board to `q55`, and
+Level 3 is an 8 × 8 board to `q77`. Each level defines its own start and goal
+states, obstacles, title, and description; Level 1 remains the default demo
+board. The robot starts at the configured start state, the goal is the accepting
+terminal state, and moving into an obstacle transitions to the `Crash` sink state.
 
 ## Architecture
 
@@ -41,8 +44,9 @@ Flask app and GameManager
 - `src/robot_navigation/automata/dfa_engine.py` builds a state-and-symbol
   transition lookup from that graph and returns the next state and outcome for
   each movement.
-- `src/robot_navigation/game/grid_config.py` defines Level 1 and converts
-  between grid coordinates and names such as `q12`.
+- `src/robot_navigation/game/grid_config.py` loads the configured level catalog
+  from `assets/state_config.yaml` and converts between grid coordinates and names
+  such as `q12`.
 - `src/robot_navigation/game/game_state.py` applies DFA results to the game,
   synchronizes the robot position, tracks the input string and path, and handles
   reset and terminal game states.
@@ -79,9 +83,12 @@ the move counter. Game snapshots include the current state, robot and goal
 positions, obstacles, move count, input string, path, crash position, and
 terminal-state indicator.
 
-The JFLAP file at the project root (`robot_navigation_dfa.jff`) is preferred when
-present. `assets/robot_navigation_dfa.jff` is the fallback. `DFA_JFF_PATH` can
-override both paths.
+The active level loads its JFLAP file from the corresponding entry in
+`assets/state_config.yaml`. The configured files live under `assets/dfa/`
+(`level_1.jff`, `level_2.jff`, `level_3.jff`), and each file is validated
+against the expected start, goal, obstacle, and trap states before the game is
+started. The root-level `robot_navigation_dfa.jff` file is kept as a project
+asset, but it is not the runtime source of truth for the live game state.
 
 ## Browser interface
 
@@ -102,6 +109,7 @@ All game endpoints use JSON except the page and static assets.
 | Method and route | Purpose |
 |---|---|
 | `GET /` | Serve the browser interface. |
+| `GET /api/levels` | Return the configured level list and metadata for the level selector. |
 | `POST /api/game/start` | Start a level. Request: `{"level": 1}`. |
 | `POST /api/game/move` | Move the robot. Request: `{"direction": "RIGHT"}`. |
 | `GET /api/game/state` | Return the active game's state snapshot. |
@@ -160,8 +168,9 @@ was verified with **33 passing tests and 2 passing subtests**.
 
 ## Current scope and operational notes
 
-- Level 1 is the configured playable level; additional levels are not currently
-  defined.
+- The project defines three playable levels (1-3) in `assets/state_config.yaml`.
+  Level 1 is the default demo board, while Levels 2 and 3 are selectable from
+  the UI and API metadata.
 - Game state is held in the running Flask process rather than persisted to a
   database. The application is intended for local project/demo use.
 - Flask's built-in development server is used by the launch scripts and is not

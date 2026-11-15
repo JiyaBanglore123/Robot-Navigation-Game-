@@ -46,6 +46,12 @@ The system uses a modular 3-tier architecture with clear separation of concerns:
 └───────────────────────────┘└───────────────────────────┘
 ```
 
+Add each playable automaton to `assets/dfa/` and add a `levels` entry in
+`assets/state_config.yaml` with its JFF filename, start/end states, grid size,
+obstacle count and state names, trap state, title, and description. The level
+selector, grid, and DFA viewer are generated from that configuration and the
+selected JFLAP file.
+
 ---
 
 ## 3. Directory Structure
@@ -62,8 +68,11 @@ Robot-Navigation-Game/
 ├── INTEGRATION.md              # Team contracts, JSON specs, and module boundaries
 │
 ├── assets/
-│   └── robot_navigation_dfa.jff # Checked-in JFLAP DFA fallback
-├── robot_navigation_dfa.jff    # Project DFA used when present (Jiya)
+│   ├── state_config.yaml       # Level metadata and per-level JFLAP files
+│   └── dfa/
+│       ├── level_1.jff
+│       ├── level_2.jff
+│       └── level_3.jff
 │
 ├── docs/
 │   └── robot_navigation_gui_design.md # GUI design guidelines
@@ -215,41 +224,11 @@ Returns current session state.
 Resets the active game session to initial conditions.
 
 ### `GET /api/dfa/info`
-Returns static transition table, alphabet, initial state, and accepting states parsed from `robot_navigation_dfa.jff` (or the checked-in assets fallback) for visualization in the DFA Viewer.
+Returns the selected level's transition table, alphabet, initial state, and accepting states parsed from its JFLAP file. Levels and their state/grid metadata are configured in `assets/state_config.yaml`; add a level entry there to make another JFF available in the selector.
 
 ---
 
-## 8. Module Responsibilities (Strict Boundaries)
-
-| Team Member | Role | Assigned Files | Status |
-|---|---|---|---|
-| **Jiya (Person 1)** | DFA Design & Transition Logic | `robot_navigation_dfa.jff`, `src/robot_navigation/automata/dfa_engine.py` | **Completed** |
-| **Ankur (Person 2)** | Backend, API, Frontend, Integration | `src/robot_navigation/app.py`, `src/robot_navigation/web/`, `src/robot_navigation/config/`, `run.sh`, `run.bat`, `tests/` | **Completed** |
-| **Pavithra (Person 3)** | Grid Config & Game State Coordination | `src/robot_navigation/game/grid_config.py`, `src/robot_navigation/game/game_state.py` | **Completed** |
-
----
-
-## 9. Integration Instructions
-
-The DFA engine, configured level, and game-state manager are integrated with the Flask
-API. Start the server using `run.bat` on Windows or `./run.sh` on Linux, open
-`http://127.0.0.1:5000`, and start Level 1 to play.
-
-For full contract specifications, consult [INTEGRATION.md](INTEGRATION.md).
-
----
-
-## 10. Implementation Status
-
-The assigned DFA, game-state, and API work is implemented. The following checklist
-records Jiya's completed deliverables:
-- [x] Construct the transition lookup dictionary from the parsed NetworkX MultiDiGraph in `DFAEngine.__init__`.
-- [x] Implement `DFAEngine.process_movement(current_state, movement)` and classify `PLAYING`, `CRASHED`, `WON`, and `INVALID` outcomes.
-- [x] Add automata-specific test cases for transition correctness, accepting states, and crash detection.
-
----
-
-## 11. Running Automated Tests
+## 8. Running Automated Tests
 
 Run the unit, automata, game-state, and API test suites:
 ```bash

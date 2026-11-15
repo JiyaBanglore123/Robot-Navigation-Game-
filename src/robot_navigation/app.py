@@ -27,7 +27,6 @@ from robot_navigation.config.settings import (
     DEBUG,
     DIRECTION_MAPPING,
     HOST,
-    JFF_PATH,
     PORT,
     SECRET_KEY,
     VALID_DIRECTIONS,
@@ -45,37 +44,75 @@ class GameManager:
 
     def __init__(
         self,
-        jff_path: str = JFF_PATH,
         dfa_engine_cls: Type[DFAEngine] = DFAEngine,
         game_state_cls: Type[GameState] = GameState,
         levels: Optional[Dict[int, LevelConfig]] = None,
     ):
-        self.jff_path = jff_path
         self.dfa_engine_cls = dfa_engine_cls
         self.game_state_cls = game_state_cls
         self.levels = levels if levels is not None else LEVELS
+        self.parsed_graphs: Dict[int, nx.MultiDiGraph] = {}
         self.parsed_graph: Optional[nx.MultiDiGraph] = None
         self.dfa_engine: Optional[DFAEngine] = None
         self.current_game_state: Optional[GameState] = None
         self.current_level: Optional[int] = None
 
-        # Load and parse DFA specification on initialization
-        self.load_automaton()
-
-    def load_automaton(self) -> nx.MultiDiGraph:
+    def load_automaton(self, level: int) -> nx.MultiDiGraph:
         """
         Loads the .jff file and parses it using the existing JFF parser.
         """
-        if not os.path.exists(self.jff_path):
-            raise FileNotFoundError(f"DFA specification file not found at: {self.jff_path}")
+        if level in self.parsed_graphs:
+            graph = self.parsed_graphs[level]
+            self.parsed_graph = graph
+            return graph
+        level_config = self.levels[level]
+        jff_path = level_config["jff_path"]
+        if not os.path.exists(jff_path):
+            raise FileNotFoundError(f"DFA specification file not found at: {jff_path}")
 
         try:
-            with open(self.jff_path, "r", encoding="utf-8") as f:
+            with open(jff_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            self.parsed_graph = parse_dfa(content)
-            return self.parsed_graph
+            graph = parse_dfa(content)
+            graph.graph["trap_state"] = level_config["trap_state"]
+            state_names = {
+                data.get("name", str(node_id))
+                for node_id, data in graph.nodes(data=True)
+            }
+            if graph.nodes[graph.graph["initial_state"]].get("name") != level_config["start"]:
+                raise ValueError(
+                    f"Configured start state '{level_config['start']}' does not match the JFLAP initial state."
+                )
+            if level_config["start"] not in state_names:
+                raise ValueError(f"Configured start state '{level_config['start']}' is absent from the DFA.")
+            if level_config["goal"] not in state_names:
+                raise ValueError(f"Configured end state '{level_config['goal']}' is absent from the DFA.")
+            if level_config["trap_state"] not in state_names:
+                raise ValueError(f"Configured trap state '{level_config['trap_state']}' is absent from the DFA.")
+            final_names = {
+                data.get("name", str(node_id))
+                for node_id, data in graph.nodes(data=True)
+                if data.get("final", False)
+            }
+            if level_config["goal"] not in final_names:
+                raise ValueError(f"Configured end state '{level_config['goal']}' is not accepting.")
+            expected_grid_states = {
+                f"q{row}{col}"
+                for row in range(level_config["rows"])
+                for col in range(level_config["cols"])
+            } - set(level_config["obstacles"])
+            expected_states = expected_grid_states | {level_config["trap_state"]}
+            if state_names != expected_states:
+                raise ValueError(
+                    "Configured grid states do not match states in the JFLAP file. "
+                    f"Missing: {sorted(expected_states - state_names)}; "
+                    f"unexpected: {sorted(state_names - expected_states)}."
+                )
+            self.parsed_graphs[level] = graph
+            self.parsed_graph = graph
+            return graph
         except Exception as e:
-            raise ValueError(f"Failed to parse DFA file '{self.jff_path}': {str(e)}")
+            raise ValueError(f"Failed to parse DFA file '{jff_path}': {str(e)}")
 
     def start_game(self, level: int) -> Dict[str, Any]:
         """
@@ -85,20 +122,18 @@ class GameManager:
         """
         if level not in self.levels:
             raise KeyError(
-                f"Level {level} is not configured in LEVELS. "
-                "Grid configuration must be implemented by Pavithra."
+                f"Level {level} is not configured in assets/state_config.yaml."
             )
 
         level_config = self.levels[level]
-
-        if self.parsed_graph is None:
-            self.load_automaton()
+        graph = self.load_automaton(level)
 
         # Build the DFA transition engine from the parsed JFLAP graph.
-        self.dfa_engine = self.dfa_engine_cls(self.parsed_graph)
+        self.dfa_engine = self.dfa_engine_cls(graph)
 
         # Start the configured level with the shared DFA engine.
-        self.current_game_state = self.game_state_cls(level_config, self.dfa_engine)
+        game_level_config = {**level_config, "level": level}
+        self.current_game_state = self.game_state_cls(game_level_config, self.dfa_engine)
         self.current_level = level
 
         # Retrieve initial game state representation
@@ -134,13 +169,35 @@ class GameManager:
 
         return self.current_game_state.get_state()
 
-    def get_dfa_info(self) -> Dict[str, Any]:
+    def get_dfa_info(self, level: Optional[int] = None) -> Dict[str, Any]:
         """
-        Returns static metadata of the parsed DFA for visualization.
+        Returns metadata for the active level or the first configured level.
         """
-        if self.parsed_graph is None:
-            self.load_automaton()
-        return extract_dfa_metadata(self.parsed_graph)
+        if level is None:
+            level = self.current_level if self.current_level is not None else next(iter(self.levels))
+        graph = self.load_automaton(level)
+        info = extract_dfa_metadata(graph)
+        info["trap_state"] = self.levels[level]["trap_state"]
+        return info
+
+    def get_levels(self) -> list[Dict[str, Any]]:
+        """Return the public metadata used to render the level selector."""
+        return [
+            {
+                "level": level,
+                "file_name": config["file_name"],
+                "start_state": config["start"],
+                "end_state": config["goal"],
+                "num_grid_rows": config["rows"],
+                "num_grid_cols": config["cols"],
+                "num_obstacles": len(config["obstacles"]),
+                "obstacle_states": list(config["obstacles"]),
+                "trap_state": config["trap_state"],
+                "title": config["title"],
+                "description": config["description"],
+            }
+            for level, config in self.levels.items()
+        ]
 
 
 def create_app(
@@ -267,6 +324,10 @@ def create_app(
             return jsonify({
                 "success": True,
                 "level": level,
+                "level_info": next(
+                    item for item in mgr.get_levels() if item["level"] == level
+                ),
+                "dfa_info": mgr.get_dfa_info(level),
                 "state": initial_state
             }), 200
         except KeyError as ke:
@@ -452,7 +513,22 @@ def create_app(
             }), 500
 
         try:
-            info = mgr.get_dfa_info()
+            level_arg = request.args.get("level")
+            try:
+                level = int(level_arg) if level_arg is not None else None
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "'level' must be an integer.",
+                    "status": "BAD_REQUEST"
+                }), 400
+            if level is not None and level not in mgr.levels:
+                return jsonify({
+                    "success": False,
+                    "error": f"Level {level} is not configured.",
+                    "status": "LEVEL_NOT_FOUND"
+                }), 404
+            info = mgr.get_dfa_info(level)
             return jsonify({
                 "success": True,
                 "data": info
@@ -464,6 +540,18 @@ def create_app(
                 "error": str(ex),
                 "status": "ERROR"
             }), 500
+
+    @app.route("/api/levels", methods=["GET"])
+    def levels():
+        """Return configured level metadata for the level selector."""
+        mgr: Optional[GameManager] = app.extensions.get("game_manager")
+        if mgr is None:
+            return jsonify({
+                "success": False,
+                "error": "Level configuration unavailable.",
+                "status": "UNAVAILABLE"
+            }), 500
+        return jsonify({"success": True, "levels": mgr.get_levels()}), 200
 
     return app
 
